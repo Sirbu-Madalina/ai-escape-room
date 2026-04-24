@@ -351,6 +351,7 @@ const markRoomAsCleared = () => {
 };
 
 const buildAiPuzzle = async (room: Room) => {
+  // Send request to backend endpoint that generates a riddle
   const response = await fetch(`${API_BASE_URL}/riddle`, {
     method: "POST",
     headers: {
@@ -361,13 +362,14 @@ const buildAiPuzzle = async (room: Room) => {
       theme: room.theme,
     }),
   });
-
+  // If request fails (server error, network issue), throw error
   if (!response.ok) {
     throw new Error("Backend request failed");
   }
-
+ // Parse JSON response from backend (AI-generated puzzle)
   const data = await response.json();
-
+  
+ // Extend backend data with frontend-specific properties
   return {
     ...data,
     kind: "text",
@@ -414,14 +416,19 @@ const loadPuzzleForRoom = async (room: Room, statusText?: string) => {
   startTimer(room);
 
   try {
+    // Load puzzle depending on type:
+    // - AI-generated puzzle (calls backend)
+    // - Local puzzle (predefined logic like Sudoku)
     activePuzzle.value = room.puzzleType === "ai-riddle"
       ? await buildAiPuzzle(room)
       : await buildLocalPuzzle(room);
 
+    // If the puzzle is Sudoku, initialize the editable grid
     if (activePuzzle.value.kind === "sudoku") {
       sudokuGrid.value = activePuzzle.value.givens.map((row) => [...row]);
     }
-
+  
+    // Set user message (custom or default)
     message.value = statusText ?? `${room.title} is ready. Solve it before the timer ends.`;
   } catch (error) {
     console.error(error);
@@ -433,15 +440,19 @@ const loadPuzzleForRoom = async (room: Room, statusText?: string) => {
 };
 
 const startRoom = (roomId: number) => {
+  // Find the room object based on the given roomId
   const room = rooms.value.find((item) => item.id === roomId);
-
+ // If the room does not exist OR is still locked → stop execution
   if (!room || !room.unlocked) {
     return;
   }
-
+  // Set the currently selected room (used across the UI)
   selectedRoomId.value = roomId;
+  // Switch UI to "room" screen (from menu/landing page)
   currentScreen.value = "room";
+  // Reset any previous state (answers, hints, timers, etc.)
   resetRoomActions();
+  // Load the puzzle for the selected room
   void loadPuzzleForRoom(room);
 };
 

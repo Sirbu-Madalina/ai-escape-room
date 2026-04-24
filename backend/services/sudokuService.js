@@ -1,3 +1,4 @@
+// A valid 4x4 Sudoku solution used as the base pattern.
 const baseSudokuSolution = [
   [1, 2, 3, 4],
   [3, 4, 1, 2],
@@ -5,6 +6,7 @@ const baseSudokuSolution = [
   [4, 3, 2, 1],
 ];
 
+// Randomizes the order of items, to make puzzle look different
 const shuffle = (items) => {
   const copy = [...items];
 
@@ -16,8 +18,10 @@ const shuffle = (items) => {
   return copy;
 };
 
+// Creates a copy to prevent changes to the puzzle from modifying the original solution.
 const cloneGrid = (grid) => grid.map((row) => [...row]);
 
+// Replaces the numbers 1–4 with a shuffled version of the same numbers,the solution feel different each time.
 const remapDigits = (grid) => {
   const digits = shuffle([1, 2, 3, 4]);
   const mapping = new Map([
@@ -53,12 +57,14 @@ export const createSudokuPuzzle = () => {
     [3, 2],
   ]);
 
+  // Hide 6 cells to create the challenge.
   const cellsToHide = removableCells.slice(0, 6);
 
+  // Replace hidden cells with 0, so the cell can be treated as empty
   for (const [rowIndex, columnIndex] of cellsToHide) {
     givens[rowIndex][columnIndex] = 0;
   }
-
+  // Return all puzzle data needed by the frontend.
   return {
     title: "Vault Matrix 4x4",
     riddle: "Fill the 4x4 vault grid so every row and every column contains the numbers 1 to 4 exactly once.",

@@ -8,6 +8,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5001;
 
+//Enable CORS (frontend communicates with this backend)
 app.use(cors());
 app.use(express.json());
 
@@ -23,3 +24,5 @@ app.use("/api", puzzleRoutes);
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+
