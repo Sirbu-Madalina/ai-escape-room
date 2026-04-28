@@ -222,7 +222,7 @@ type AiPuzzle = TextPuzzle & {
 type Puzzle = AiPuzzle | SudokuPuzzle | LogicBoardPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
-const API_BASE_URL = "http://localhost:5001/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5001/api";
 const MAX_LIVES = 3;
 
 const rooms = ref(createInitialRooms());
