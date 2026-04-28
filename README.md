@@ -150,3 +150,5 @@ Three logical clues point to one correct terminal (alpha, beta, or gamma). Gener
 - Per-room countdown timer; timeout triggers a new puzzle and costs a life
 - Room themes (cyan / gold / pink) with matching UI styling
 - Fallback puzzle system ensures the game always works even if the API is unavailable
+
+  See it live here: https://ai-escape-room-1.onrender.com/
