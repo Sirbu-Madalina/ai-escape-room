@@ -79,6 +79,59 @@ button {
   margin-bottom: 28px;
 }
 
+.session-setup-card,
+.session-summary-card {
+  margin-bottom: 28px;
+}
+
+.session-setup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.player-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.chat-message-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.chat-message {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(135, 148, 180, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.chat-message strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #f5f7fb;
+}
+
+.chat-message p {
+  color: #9da8c3;
+  line-height: 1.5;
+}
+
+.player-presence-pill {
+  flex-wrap: wrap;
+}
+
+.session-invite-copy {
+  margin-top: 16px;
+  color: #8fa7d3;
+  word-break: break-all;
+}
+
 .status-chip {
   min-width: 180px;
   padding: 16px 18px;

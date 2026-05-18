@@ -4,7 +4,12 @@
       <p class="eyebrow">MindLock Protocol</p>
       <h1>Choose Your Escape Room</h1>
       <p class="hero-copy">
-        Your lives are shared across the whole game. Clear one room to unlock the next.
+        <template v-if="session">
+          Your lives are shared across the whole game. Clear one room to unlock the next.
+        </template>
+        <template v-else>
+          Jump straight into a solo run, or start a shared session if you want to escape with friends.
+        </template>
       </p>
     </section>
 
@@ -19,10 +24,40 @@
         <strong>{{ clearedRoomsCount }}/{{ rooms.length }} rooms cleared</strong>
       </div>
 
+      <div v-if="session" class="status-chip">
+        <span class="status-chip__label">Session</span>
+        <strong>{{ session.joinCode }}</strong>
+      </div>
+
       <button class="secondary-button lobby-replay-button" @click="retryRun">
         Replay
       </button>
     </section>
+
+    <SessionLobbyPanel
+      v-if="session"
+      :session="session"
+      :current-player-id="currentPlayer?.id ?? ''"
+      :is-host="isHost"
+      :invite-link="inviteLink"
+      :realtime-error="realtimeError"
+      @replay="retryRun"
+      @leave="leaveSession"
+      @copy-invite="copyInviteLink"
+    />
+
+    <SessionAccessPanel
+      v-else
+      :player-name="playerName"
+      :join-code="joinCodeInput"
+      :session-loading="sessionLoading"
+      :session-error="sessionError"
+      :realtime-error="realtimeError"
+      @update:player-name="playerName = $event"
+      @update:join-code="joinCodeInput = $event"
+      @create="createSession"
+      @join="joinSession"
+    />
 
     <section class="room-grid" aria-label="Escape rooms">
       <RoomCard
@@ -35,7 +70,6 @@
         @start="startRoom"
       />
     </section>
-
   </main>
 
   <main v-else-if="currentScreen === 'room'" class="mission-shell">
@@ -68,7 +102,12 @@
           >
             Get answer
           </button>
-          <button class="primary-button" :class="`primary-button--${selectedRoom.themeClass}`" @click="exitRoom">
+          <button
+            class="primary-button"
+            :class="`primary-button--${selectedRoom.themeClass}`"
+            :disabled="Boolean(session && !isHost)"
+            @click="exitRoom"
+          >
             Exit
           </button>
         </div>
@@ -92,27 +131,33 @@
             <label class="input-label" for="answer-input">Your answer</label>
             <input
               id="answer-input"
-              v-model="answerInput"
+              :value="answerInput"
               type="text"
               :placeholder="activePuzzle.inputPlaceholder"
               :disabled="roomCleared"
+              @focus="emitEditingPresence('answer')"
+              @blur="emitEditingPresence('')"
+              @input="handleTextDraftInput"
             />
           </template>
 
           <template v-else-if="activePuzzle.kind === 'sudoku'">
             <label class="input-label">Fill the 4x4 vault grid</label>
             <SudokuPuzzleBoard
-              v-model="sudokuGrid"
+              :model-value="sudokuGrid"
               :puzzle="activePuzzle"
               :disabled="roomCleared"
+              @update:model-value="handleSudokuGridUpdate"
+              @cell-update="handleSudokuCellUpdate"
             />
           </template>
 
           <template v-else>
             <LogicBoardPuzzleView
-              v-model="logicBoardSelection"
+              :model-value="logicBoardSelection"
               :puzzle="activePuzzle"
               :disabled="roomCleared"
+              @update:model-value="handleLogicBoardDraftUpdate"
             />
           </template>
 
@@ -148,6 +193,7 @@
               v-if="roomCleared && nextUnlockedRoomId"
               class="primary-button mission-submit"
               :class="`primary-button--${selectedRoom.themeClass}`"
+              :disabled="Boolean(session && !isHost)"
               @click="goToNextRoom"
             >
               Go to {{ nextRoomTitle }}
@@ -157,6 +203,7 @@
               v-else-if="roomCleared"
               class="primary-button mission-submit"
               :class="`primary-button--${selectedRoom.themeClass}`"
+              :disabled="Boolean(session && !isHost)"
               @click="returnToLobby"
             >
               Back to Lobby
@@ -175,6 +222,7 @@
               <button
                 v-if="lives === 0"
                 class="danger-button mission-submit mission-submit--secondary"
+                :disabled="Boolean(session && !isHost)"
                 @click="triggerGameOver"
               >
                 Give up
@@ -188,6 +236,14 @@
           <p class="puzzle-text">{{ message }}</p>
         </template>
       </section>
+
+      <SessionChatPanel
+        :session="session"
+        :realtime-error="realtimeError"
+        :chat-input="chatInput"
+        @update:chat-input="setChatInputValue"
+        @send="sendChatMessage"
+      />
     </section>
   </main>
 
@@ -200,298 +256,136 @@
       </p>
 
       <div class="game-over-actions">
-        <button class="primary-button" @click="startOver">Start Over</button>
+        <button class="primary-button" :disabled="Boolean(session && !isHost)" @click="startOver">
+          Start Over
+        </button>
       </div>
     </section>
   </main>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref } from "vue";
-import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
+import { onBeforeUnmount, onMounted } from "vue";
 import RoomCard from "./components/RoomCard.vue";
+import SessionAccessPanel from "./components/SessionAccessPanel.vue";
+import SessionChatPanel from "./components/SessionChatPanel.vue";
+import SessionLobbyPanel from "./components/SessionLobbyPanel.vue";
+import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
 import SudokuPuzzleBoard from "./components/puzzles/SudokuPuzzle.vue";
-import type { LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "./data/localPuzzles";
-import type { Room } from "./data/rooms";
-import { initialRooms } from "./data/rooms";
+import { useGameplay } from "./composables/useGameplay";
+import { useSession } from "./composables/useSession";
 
-type AiPuzzle = TextPuzzle & {
-  answer: string;
-};
-
-type Puzzle = AiPuzzle | SudokuPuzzle | LogicBoardPuzzle;
-type Screen = "lobby" | "room" | "game-over";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5001/api";
-const MAX_LIVES = 3;
-
-const rooms = ref(createInitialRooms());
-const currentScreen = ref<Screen>("lobby");
-const selectedRoomId = ref(1);
-const loading = ref(false);
-const activePuzzle = ref<Puzzle | null>(null);
-const answerInput = ref("");
-const sudokuGrid = ref<number[][]>([]);
-const logicBoardSelection = ref("");
-const message = ref("");
-const showHint = ref(false);
-const hintUsed = ref(false);
-const answerUsed = ref(false);
-const showAnswerText = ref(false);
-const showSudokuSolution = ref(false);
-const showExplanation = ref(false);
-const lives = ref(MAX_LIVES);
-const secondsLeft = ref(initialRooms[0].timeLimitSeconds);
-const clearedRoomIds = ref<number[]>([]);
-const roomCleared = ref(false);
-let timerId: number | null = null;
-
-function createInitialRooms() {
-  return initialRooms.map((room) => ({ ...room }));
-}
-
-const selectedRoom = computed(() => {
-  return rooms.value.find((room) => room.id === selectedRoomId.value) ?? rooms.value[0];
+const gameplay = useGameplay();
+const {
+  playerName,
+  joinCodeInput,
+  session,
+  currentPlayer,
+  sessionLoading,
+  sessionError,
+  realtimeError,
+  chatInput,
+  isHost,
+  inviteLink,
+  createSession,
+  joinSession,
+  restorePersistedSession,
+  setChatInputValue,
+  sendChatMessage,
+  copyInviteLink,
+  emitRoomStart,
+  emitRoomExit,
+  emitRestart,
+  emitGiveUp,
+  emitHint,
+  emitReveal,
+  emitSubmitAnswer,
+  emitDraftText,
+  emitDraftLogic,
+  emitDraftSudokuCell,
+  emitEditingPresence,
+  leaveSession,
+  disconnectRealtime,
+} = useSession({
+  onSessionState: gameplay.syncLocalStateFromSession,
+  onSessionLeft: () => {
+    gameplay.resetRoomUi();
+    gameplay.resetRoomActions();
+    gameplay.currentScreen.value = "lobby";
+    gameplay.rooms.value = gameplay.rooms.value.map((room, index) => ({
+      ...room,
+      unlocked: index === 0,
+    }));
+  },
 });
 
-const clearedRoomsCount = computed(() => clearedRoomIds.value.length);
+const {
+  MAX_LIVES,
+  rooms,
+  currentScreen,
+  selectedRoomId,
+  loading,
+  activePuzzle,
+  answerInput,
+  sudokuGrid,
+  logicBoardSelection,
+  message,
+  showHint,
+  hintUsed,
+  answerUsed,
+  showAnswerText,
+  showSudokuSolution,
+  showExplanation,
+  lives,
+  clearedRoomIds,
+  roomCleared,
+  selectedRoom,
+  clearedRoomsCount,
+  nextUnlockedRoomId,
+  nextRoomTitle,
+  logicBoardAnswerLabel,
+  formattedTime,
+  resetRoomUi,
+  resetRoomActions,
+  resetProgressionRooms,
+  stopTimer,
+  startTimer,
+  markRoomAsCleared,
+  loadPuzzleForRoom,
+} = gameplay;
 
-const nextUnlockedRoomId = computed(() => {
-  const nextRoom = rooms.value.find((room) => room.id === selectedRoom.value.id + 1 && room.unlocked);
-  return nextRoom?.id ?? null;
-});
+const handleTextDraftInput = (event: Event) => {
+  const nextValue = (event.target as HTMLInputElement).value;
 
-const nextRoomTitle = computed(() => {
-  const nextRoom = rooms.value.find((room) => room.id === nextUnlockedRoomId.value);
-  return nextRoom?.title ?? "Next Room";
-});
-
-const logicBoardAnswerLabel = computed(() => {
-  const puzzle = activePuzzle.value;
-
-  if (!puzzle || puzzle.kind !== "logic-board") {
-    return "";
-  }
-
-  return puzzle.options.find((option) => option.id === puzzle.answer)?.label ?? "";
-});
-
-const formattedTime = computed(() => {
-  const minutes = Math.floor(secondsLeft.value / 60);
-  const seconds = secondsLeft.value % 60;
-
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-});
-
-const resetRoomUi = () => {
-  activePuzzle.value = null;
-  answerInput.value = "";
-  sudokuGrid.value = [];
-  logicBoardSelection.value = "";
-  message.value = "";
-  showExplanation.value = false;
-  roomCleared.value = false;
-  showAnswerText.value = false;
-  showSudokuSolution.value = false;
-};
-
-const resetRoomActions = () => {
-  showHint.value = false;
-  hintUsed.value = false;
-  answerUsed.value = false;
-  showAnswerText.value = false;
-  showSudokuSolution.value = false;
-};
-
-const resetProgressionRooms = () => {
-  rooms.value = initialRooms.map((room, index) => ({
-    ...room,
-    unlocked: index === 0,
-  }));
-};
-
-const stopTimer = () => {
-  if (timerId !== null) {
-    window.clearInterval(timerId);
-    timerId = null;
-  }
-};
-
-const startTimer = (room: Room) => {
-  stopTimer();
-  secondsLeft.value = room.timeLimitSeconds;
-
-  timerId = window.setInterval(() => {
-    if (secondsLeft.value <= 1) {
-      stopTimer();
-      secondsLeft.value = 0;
-      void handleFailedAttempt("Time is up. A new puzzle is loading.");
-      return;
-    }
-
-    secondsLeft.value -= 1;
-  }, 1000);
-};
-
-const unlockNextRoom = () => {
-  const nextRoom = rooms.value.find((room) => room.id === selectedRoom.value.id + 1);
-
-  if (nextRoom) {
-    nextRoom.unlocked = true;
-  }
-};
-
-const markRoomAsCleared = () => {
-  if (!clearedRoomIds.value.includes(selectedRoom.value.id)) {
-    clearedRoomIds.value.push(selectedRoom.value.id);
-  }
-
-  roomCleared.value = true;
-  unlockNextRoom();
-};
-
-const buildAiPuzzle = async (room: Room) => {
-  // Send request to backend endpoint that generates a riddle
-  const response = await fetch(`${API_BASE_URL}/riddle`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      difficulty: room.difficulty,
-      theme: room.theme,
-    }),
-  });
-  // If request fails (server error, network issue), throw error
-  if (!response.ok) {
-    throw new Error("Backend request failed");
-  }
- // Parse JSON response from backend (AI-generated puzzle)
-  const data = await response.json();
-  
- // Extend backend data with frontend-specific properties
-  return {
-    ...data,
-    kind: "text",
-    inputPlaceholder: "Type the answer",
-  } as AiPuzzle;
-};
-
-const buildLocalPuzzle = (room: Room) => {
-  if (room.puzzleType === "sudoku") {
-    return fetch(`${API_BASE_URL}/sudoku`).then(async (response) => {
-      if (!response.ok) {
-        throw new Error("Sudoku request failed");
-      }
-
-      return response.json() as Promise<SudokuPuzzle>;
-    });
-  }
-
-  if (room.puzzleType === "logic-board") {
-    return fetch(`${API_BASE_URL}/logic-board`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        difficulty: room.difficulty,
-        theme: room.theme,
-      }),
-    }).then(async (response) => {
-      if (!response.ok) {
-        throw new Error("Logic board request failed");
-      }
-
-      return response.json() as Promise<LogicBoardPuzzle>;
-    });
-  }
-
-  throw new Error("Unknown local puzzle type");
-};
-
-const loadPuzzleForRoom = async (room: Room, statusText?: string) => {
-  loading.value = true;
-  resetRoomUi();
-  startTimer(room);
-
-  try {
-    // Load puzzle depending on type:
-    // - AI-generated puzzle (calls backend)
-    // - Local puzzle (predefined logic like Sudoku)
-    activePuzzle.value = room.puzzleType === "ai-riddle"
-      ? await buildAiPuzzle(room)
-      : await buildLocalPuzzle(room);
-
-    // If the puzzle is Sudoku, initialize the editable grid
-    if (activePuzzle.value.kind === "sudoku") {
-      sudokuGrid.value = activePuzzle.value.givens.map((row) => [...row]);
-    }
-  
-    // Set user message (custom or default)
-    message.value = statusText ?? `${room.title} is ready. Solve it before the timer ends.`;
-  } catch (error) {
-    console.error(error);
-    stopTimer();
-    message.value = "Failed to load puzzle. Check that the backend is running.";
-  } finally {
-    loading.value = false;
-  }
-};
-
-const startRoom = (roomId: number) => {
-  // Find the room object based on the given roomId
-  const room = rooms.value.find((item) => item.id === roomId);
- // If the room does not exist OR is still locked → stop execution
-  if (!room || !room.unlocked) {
+  if (session.value) {
+    emitDraftText(nextValue);
+    emitEditingPresence("answer");
     return;
   }
-  // Set the currently selected room (used across the UI)
-  selectedRoomId.value = roomId;
-  // Switch UI to "room" screen (from menu/landing page)
-  currentScreen.value = "room";
-  // Reset any previous state (answers, hints, timers, etc.)
-  resetRoomActions();
-  // Load the puzzle for the selected room
-  void loadPuzzleForRoom(room);
+
+  answerInput.value = nextValue;
 };
 
-const returnToLobby = () => {
-  stopTimer();
-  currentScreen.value = "lobby";
-  resetRoomUi();
+const handleLogicBoardDraftUpdate = (nextValue: string) => {
+  if (session.value) {
+    emitDraftLogic(nextValue);
+    emitEditingPresence(nextValue ? "logic board" : "");
+    return;
+  }
+
+  logicBoardSelection.value = nextValue;
 };
 
-const exitRoom = () => {
-  returnToLobby();
+const handleSudokuGridUpdate = (nextGrid: number[][]) => {
+  sudokuGrid.value = nextGrid;
 };
 
-const triggerGameOver = () => {
-  stopTimer();
-  currentScreen.value = "game-over";
-  resetRoomUi();
-};
+const handleSudokuCellUpdate = (payload: { rowIndex: number; columnIndex: number; value: number }) => {
+  if (!session.value) {
+    return;
+  }
 
-const startOver = () => {
-  stopTimer();
-  rooms.value = createInitialRooms();
-  currentScreen.value = "lobby";
-  selectedRoomId.value = 1;
-  lives.value = MAX_LIVES;
-  secondsLeft.value = initialRooms[0].timeLimitSeconds;
-  clearedRoomIds.value = [];
-  resetRoomUi();
-  resetRoomActions();
-};
-
-const retryRun = () => {
-  stopTimer();
-  resetProgressionRooms();
-  currentScreen.value = "lobby";
-  selectedRoomId.value = 1;
-  clearedRoomIds.value = [];
-  resetRoomUi();
-  resetRoomActions();
+  emitDraftSudokuCell(payload);
 };
 
 const handleFailedAttempt = async (failureMessage: string) => {
@@ -520,7 +414,115 @@ const handleSolvedRoom = () => {
   }
 };
 
+const startRoom = (roomId: number) => {
+  if (session.value) {
+    if (!isHost.value) {
+      return;
+    }
+
+    resetRoomActions();
+    resetRoomUi();
+    loading.value = true;
+    currentScreen.value = "room";
+    selectedRoomId.value = roomId;
+    emitRoomStart(roomId);
+    return;
+  }
+
+  const room = rooms.value.find((item) => item.id === roomId);
+
+  if (!room || !room.unlocked) {
+    return;
+  }
+
+  selectedRoomId.value = roomId;
+  currentScreen.value = "room";
+  resetRoomActions();
+  startTimer(room, () => {
+    void handleFailedAttempt("Time is up. A new puzzle is loading.");
+  });
+  void loadPuzzleForRoom(room);
+};
+
+const returnToLobby = () => {
+  if (session.value) {
+    if (!isHost.value) {
+      return;
+    }
+
+    emitRoomExit();
+    return;
+  }
+
+  stopTimer();
+  currentScreen.value = "lobby";
+  resetRoomUi();
+};
+
+const exitRoom = () => {
+  returnToLobby();
+};
+
+const triggerGameOver = () => {
+  if (session.value) {
+    if (!isHost.value) {
+      return;
+    }
+
+    emitGiveUp();
+    return;
+  }
+
+  stopTimer();
+  currentScreen.value = "game-over";
+  resetRoomUi();
+};
+
+const startOver = () => {
+  if (session.value) {
+    if (!isHost.value) {
+      return;
+    }
+
+    emitRestart();
+    return;
+  }
+
+  stopTimer();
+  rooms.value = rooms.value.map((room, index) => ({ ...room, unlocked: index === 0 }));
+  currentScreen.value = "lobby";
+  selectedRoomId.value = 1;
+  lives.value = MAX_LIVES;
+  clearedRoomIds.value = [];
+  resetRoomUi();
+  resetRoomActions();
+};
+
+const retryRun = () => {
+  if (session.value) {
+    if (!isHost.value) {
+      return;
+    }
+
+    emitRestart();
+    return;
+  }
+
+  stopTimer();
+  resetProgressionRooms();
+  currentScreen.value = "lobby";
+  selectedRoomId.value = 1;
+  clearedRoomIds.value = [];
+  resetRoomUi();
+  resetRoomActions();
+};
+
 const useHint = () => {
+  if (session.value) {
+    emitHint();
+    return;
+  }
+
   if (!activePuzzle.value || hintUsed.value) {
     return;
   }
@@ -530,6 +532,11 @@ const useHint = () => {
 };
 
 const useAnswerReveal = () => {
+  if (session.value) {
+    emitReveal();
+    return;
+  }
+
   if (!activePuzzle.value || answerUsed.value || roomCleared.value) {
     return;
   }
@@ -547,6 +554,15 @@ const useAnswerReveal = () => {
 };
 
 const checkAnswer = () => {
+  if (session.value) {
+    emitSubmitAnswer({
+      textAnswer: answerInput.value,
+      sudokuGrid: sudokuGrid.value,
+      logicBoardSelection: logicBoardSelection.value,
+    });
+    return;
+  }
+
   if (!activePuzzle.value || roomCleared.value) {
     return;
   }
@@ -607,7 +623,12 @@ const goToNextRoom = () => {
   }
 };
 
+onMounted(() => {
+  void restorePersistedSession();
+});
+
 onBeforeUnmount(() => {
   stopTimer();
+  disconnectRealtime();
 });
 </script>

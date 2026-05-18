@@ -32,6 +32,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:modelValue": [grid: number[][]];
+  "cell-update": [payload: { rowIndex: number; columnIndex: number; value: number }];
 }>();
 
 const updateCell = (rowIndex: number, columnIndex: number, event: Event) => {
@@ -43,5 +44,10 @@ const updateCell = (rowIndex: number, columnIndex: number, event: Event) => {
   nextGrid[rowIndex][columnIndex] = parsedValue;
 
   emit("update:modelValue", nextGrid);
+  emit("cell-update", {
+    rowIndex,
+    columnIndex,
+    value: parsedValue,
+  });
 };
 </script>
