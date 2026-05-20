@@ -1,4 +1,36 @@
 <template>
+  <audio
+    ref="ambientAudio"
+    loop
+    preload="auto"
+    src="/audio/Crime%20is%20Everywhere.mp3"
+    @error="musicUnavailable = true"
+  ></audio>
+
+  <section class="music-control" aria-label="Ambient music controls">
+    <button
+      type="button"
+      class="music-control__toggle"
+      :disabled="musicUnavailable"
+      @click="toggleMusic"
+    >
+      {{ isMusicPlaying ? "Music On" : "Music Off" }}
+    </button>
+
+    <label class="music-control__volume">
+      <span>Volume</span>
+      <input
+        v-model.number="musicVolume"
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        :disabled="musicUnavailable"
+        @input="applyMusicVolume"
+      />
+    </label>
+  </section>
+
   <main v-if="currentScreen === 'lobby'" class="app-shell">
     <section class="hero-section">
       <p class="eyebrow">MindLock Protocol</p>
@@ -16,7 +48,7 @@
     <section class="game-status-bar">
       <div class="status-chip">
         <span class="status-chip__label">Lives</span>
-        <strong>{{ lives }}/{{ MAX_LIVES }}</strong>
+        <strong>{{ lives }}/{{ maxLives }}</strong>
       </div>
 
       <div class="status-chip">
@@ -29,9 +61,36 @@
         <strong>{{ session.joinCode }}</strong>
       </div>
 
+      <div class="status-chip">
+        <span class="status-chip__label">Intensity</span>
+        <strong>{{ selectedIntensityLabel }}</strong>
+      </div>
+
       <button class="secondary-button lobby-replay-button" @click="retryRun">
         Replay
       </button>
+    </section>
+
+    <section class="intensity-panel" aria-label="Intensity level">
+      <div>
+        <p class="panel-label">Intensity</p>
+        <h2>Choose the pressure level</h2>
+      </div>
+
+      <div class="intensity-options">
+        <button
+          v-for="option in intensityOptions"
+          :key="option.id"
+          type="button"
+          class="intensity-option"
+          :class="{ 'intensity-option--selected': selectedIntensity === option.id }"
+          :disabled="Boolean(session)"
+          @click="setIntensity(option.id)"
+        >
+          <strong>{{ option.label }}</strong>
+          <span>{{ option.description }}</span>
+        </button>
+      </div>
     </section>
 
     <SessionLobbyPanel
@@ -55,7 +114,7 @@
       :realtime-error="realtimeError"
       @update:player-name="playerName = $event"
       @update:join-code="joinCodeInput = $event"
-      @create="createSession"
+      @create="createSharedSession"
       @join="joinSession"
     />
 
@@ -82,7 +141,7 @@
 
         <div class="mission-actions">
           <div class="info-pill">
-            <span>{{ lives }}/{{ MAX_LIVES }}</span>
+            <span>{{ lives }}/{{ maxLives }}</span>
             <span aria-hidden="true">♥</span>
           </div>
 
@@ -265,7 +324,7 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from "vue";
+import { computed, ref, watch, onBeforeUnmount, onMounted } from "vue";
 import RoomCard from "./components/RoomCard.vue";
 import SessionAccessPanel from "./components/SessionAccessPanel.vue";
 import SessionChatPanel from "./components/SessionChatPanel.vue";
@@ -274,6 +333,14 @@ import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
 import SudokuPuzzleBoard from "./components/puzzles/SudokuPuzzle.vue";
 import { useGameplay } from "./composables/useGameplay";
 import { useSession } from "./composables/useSession";
+
+const MUSIC_ENABLED_KEY = "ai-escape-room-music-enabled";
+const MUSIC_VOLUME_KEY = "ai-escape-room-music-volume";
+
+const ambientAudio = ref<HTMLAudioElement | null>(null);
+const isMusicPlaying = ref(false);
+const musicUnavailable = ref(false);
+const musicVolume = ref(0.35);
 
 const gameplay = useGameplay();
 const {
@@ -320,7 +387,9 @@ const {
 });
 
 const {
-  MAX_LIVES,
+  intensityOptions,
+  selectedIntensity,
+  maxLives,
   rooms,
   currentScreen,
   selectedRoomId,
@@ -348,11 +417,73 @@ const {
   resetRoomUi,
   resetRoomActions,
   resetProgressionRooms,
+  setIntensity,
   stopTimer,
   startTimer,
   markRoomAsCleared,
   loadPuzzleForRoom,
 } = gameplay;
+
+const selectedIntensityLabel = computed(() => {
+  return intensityOptions.find((option) => option.id === selectedIntensity.value)?.label ?? "Medium";
+});
+
+const createSharedSession = () => {
+  void createSession(selectedIntensity.value);
+};
+
+const readStoredBoolean = (key: string, fallback: boolean) => {
+  const storedValue = window.localStorage.getItem(key);
+
+  if (storedValue === null) {
+    return fallback;
+  }
+
+  return storedValue === "true";
+};
+
+const applyMusicVolume = () => {
+  const nextVolume = Math.min(Math.max(musicVolume.value, 0), 1);
+  musicVolume.value = nextVolume;
+
+  if (ambientAudio.value) {
+    ambientAudio.value.volume = nextVolume;
+  }
+
+  window.localStorage.setItem(MUSIC_VOLUME_KEY, String(nextVolume));
+};
+
+const playAmbientMusic = async () => {
+  const audio = ambientAudio.value;
+
+  if (!audio || musicUnavailable.value) {
+    return;
+  }
+
+  try {
+    await audio.play();
+    isMusicPlaying.value = true;
+    window.localStorage.setItem(MUSIC_ENABLED_KEY, "true");
+  } catch {
+    isMusicPlaying.value = false;
+    window.localStorage.setItem(MUSIC_ENABLED_KEY, "false");
+  }
+};
+
+const pauseAmbientMusic = () => {
+  ambientAudio.value?.pause();
+  isMusicPlaying.value = false;
+  window.localStorage.setItem(MUSIC_ENABLED_KEY, "false");
+};
+
+const toggleMusic = () => {
+  if (isMusicPlaying.value) {
+    pauseAmbientMusic();
+    return;
+  }
+
+  void playAmbientMusic();
+};
 
 const handleTextDraftInput = (event: Event) => {
   const nextValue = (event.target as HTMLInputElement).value;
@@ -489,10 +620,10 @@ const startOver = () => {
   }
 
   stopTimer();
-  rooms.value = rooms.value.map((room, index) => ({ ...room, unlocked: index === 0 }));
+  resetProgressionRooms();
   currentScreen.value = "lobby";
   selectedRoomId.value = 1;
-  lives.value = MAX_LIVES;
+  lives.value = maxLives.value;
   clearedRoomIds.value = [];
   resetRoomUi();
   resetRoomActions();
@@ -512,6 +643,7 @@ const retryRun = () => {
   resetProgressionRooms();
   currentScreen.value = "lobby";
   selectedRoomId.value = 1;
+  lives.value = maxLives.value;
   clearedRoomIds.value = [];
   resetRoomUi();
   resetRoomActions();
@@ -624,11 +756,26 @@ const goToNextRoom = () => {
 };
 
 onMounted(() => {
+  const storedVolume = Number(window.localStorage.getItem(MUSIC_VOLUME_KEY));
+  musicVolume.value = Number.isFinite(storedVolume) ? storedVolume : musicVolume.value;
+  applyMusicVolume();
+
+  if (readStoredBoolean(MUSIC_ENABLED_KEY, false)) {
+    void playAmbientMusic();
+  }
+
   void restorePersistedSession();
+});
+
+watch(musicUnavailable, (isUnavailable) => {
+  if (isUnavailable) {
+    pauseAmbientMusic();
+  }
 });
 
 onBeforeUnmount(() => {
   stopTimer();
+  pauseAmbientMusic();
   disconnectRealtime();
 });
 </script>

@@ -5,6 +5,7 @@ import {
   joinSession,
   restoreSessionPlayer,
 } from "../services/sessionService.js";
+import { normalizeIntensity } from "../data/intensity.js";
 
 const router = express.Router();
 
@@ -20,7 +21,10 @@ router.post("/sessions", (req, res) => {
     return;
   }
 
-  const result = createSession({ playerName });
+  const result = createSession({
+    playerName,
+    intensity: normalizeIntensity(req.body?.intensity),
+  });
   res.status(201).json(result);
 });
 

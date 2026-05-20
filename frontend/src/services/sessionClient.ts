@@ -1,4 +1,5 @@
 import type { LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type { IntensityLevel } from "../data/intensity";
 import type { Room } from "../data/rooms";
 
 const API_BASE_URL = "http://localhost:5001/api";
@@ -17,6 +18,8 @@ export type SessionPlayer = {
 };
 
 export type SessionGameState = {
+  intensity: IntensityLevel;
+  maxLives: number;
   currentScreen: "lobby" | "room" | "game-over";
   selectedRoomId: number;
   lives: number;
@@ -74,13 +77,13 @@ const parseJson = async <T>(response: Response): Promise<T> => {
   return data as T;
 };
 
-export const createSession = async (playerName: string) => {
+export const createSession = async (playerName: string, intensity: IntensityLevel) => {
   const response = await fetch(`${API_BASE_URL}/sessions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ playerName }),
+    body: JSON.stringify({ playerName, intensity }),
   });
 
   return parseJson<SessionJoinResponse>(response);

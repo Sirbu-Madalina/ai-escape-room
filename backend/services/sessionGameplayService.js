@@ -1,4 +1,4 @@
-import { initialRooms } from "../data/initialRooms.js";
+import { cloneRooms, createInitialGameState } from "./sessionStore.js";
 import { createPuzzleForRoom } from "./puzzleService.js";
 import {
   getSessionRecord,
@@ -401,16 +401,19 @@ export const restartSessionRun = ({ sessionId, actorPlayerId }) => {
     return hostError;
   }
 
+  const resetRooms = cloneRooms(session.gameState.intensity).map((room, index) => ({ ...room, unlocked: index === 0 }));
+
   session.gameState = {
     ...session.gameState,
     ...{
       currentScreen: "lobby",
       selectedRoomId: 1,
-      lives: 3,
-      rooms: initialRooms.map((room, index) => ({ ...room, unlocked: index === 0 })),
+      maxLives: session.gameState.maxLives,
+      lives: session.gameState.maxLives,
+      rooms: resetRooms,
       clearedRoomIds: [],
       roomCleared: false,
-      secondsLeft: initialRooms[0].timeLimitSeconds,
+      secondsLeft: resetRooms[0].timeLimitSeconds,
       activePuzzle: null,
       puzzleInstanceId: 0,
       textAnswerDraft: "",
@@ -446,7 +449,7 @@ export const returnSessionToLobby = ({ sessionId, actorPlayerId }) => {
   const selectedRoom = getSelectedRoom(session);
   session.gameState.currentScreen = "lobby";
   resetTransientRoomState(session);
-  session.gameState.secondsLeft = selectedRoom?.timeLimitSeconds ?? initialRooms[0].timeLimitSeconds;
+  session.gameState.secondsLeft = selectedRoom?.timeLimitSeconds ?? createInitialGameState(session.gameState.intensity).secondsLeft;
   session.gameState.message = "The team returned to the lobby.";
   touchSession(session);
 

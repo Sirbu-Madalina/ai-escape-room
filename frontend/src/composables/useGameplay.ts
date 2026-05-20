@@ -1,4 +1,10 @@
 import { computed, ref } from "vue";
+import {
+  DEFAULT_INTENSITY,
+  getIntensityOption,
+  intensityOptions,
+  type IntensityLevel,
+} from "../data/intensity";
 import type { LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
 import type { Room } from "../data/rooms";
 import { initialRooms } from "../data/rooms";
@@ -12,10 +18,10 @@ type Puzzle = AiPuzzle | SudokuPuzzle | LogicBoardPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
 const API_BASE_URL = "http://localhost:5001/api";
-const MAX_LIVES = 3;
 
 export const useGameplay = () => {
-  const rooms = ref(createInitialRooms());
+  const selectedIntensity = ref<IntensityLevel>(DEFAULT_INTENSITY);
+  const rooms = ref(createInitialRooms(selectedIntensity.value));
   const currentScreen = ref<Screen>("lobby");
   const selectedRoomId = ref(1);
   const loading = ref(false);
@@ -30,15 +36,22 @@ export const useGameplay = () => {
   const showAnswerText = ref(false);
   const showSudokuSolution = ref(false);
   const showExplanation = ref(false);
-  const lives = ref(MAX_LIVES);
-  const secondsLeft = ref(initialRooms[0].timeLimitSeconds);
+  const maxLives = ref(getIntensityOption(selectedIntensity.value).lives);
+  const lives = ref(maxLives.value);
+  const secondsLeft = ref(rooms.value[0].timeLimitSeconds);
   const clearedRoomIds = ref<number[]>([]);
   const roomCleared = ref(false);
   const activePuzzleInstanceId = ref(0);
   let timerId: number | null = null;
 
-  function createInitialRooms() {
-    return initialRooms.map((room) => ({ ...room }));
+  function createInitialRooms(intensity: IntensityLevel) {
+    const option = getIntensityOption(intensity);
+
+    return initialRooms.map((room) => ({
+      ...room,
+      difficulty: option.aiDifficulty,
+      timeLimitSeconds: Math.max(30, Math.round(room.timeLimitSeconds * option.timeMultiplier)),
+    }));
   }
 
   const selectedRoom = computed(() => {
@@ -95,10 +108,23 @@ export const useGameplay = () => {
   };
 
   const resetProgressionRooms = () => {
-    rooms.value = initialRooms.map((room, index) => ({
+    rooms.value = createInitialRooms(selectedIntensity.value).map((room, index) => ({
       ...room,
       unlocked: index === 0,
     }));
+  };
+
+  const setIntensity = (intensity: IntensityLevel) => {
+    selectedIntensity.value = intensity;
+    const option = getIntensityOption(intensity);
+    maxLives.value = option.lives;
+    lives.value = option.lives;
+    resetProgressionRooms();
+    selectedRoomId.value = 1;
+    secondsLeft.value = rooms.value[0].timeLimitSeconds;
+    clearedRoomIds.value = [];
+    resetRoomUi();
+    resetRoomActions();
   };
 
   const stopTimer = () => {
@@ -224,6 +250,8 @@ export const useGameplay = () => {
 
   const syncLocalStateFromSession = (nextSession: GameSession) => {
     rooms.value = nextSession.gameState.rooms.map((room) => ({ ...room }));
+    selectedIntensity.value = nextSession.gameState.intensity ?? DEFAULT_INTENSITY;
+    maxLives.value = nextSession.gameState.maxLives ?? getIntensityOption(selectedIntensity.value).lives;
     currentScreen.value = nextSession.gameState.currentScreen;
     lives.value = nextSession.gameState.lives;
     secondsLeft.value = nextSession.gameState.secondsLeft;
@@ -260,7 +288,9 @@ export const useGameplay = () => {
   };
 
   return {
-    MAX_LIVES,
+    intensityOptions,
+    selectedIntensity,
+    maxLives,
     rooms,
     currentScreen,
     selectedRoomId,
@@ -289,6 +319,7 @@ export const useGameplay = () => {
     resetRoomUi,
     resetRoomActions,
     resetProgressionRooms,
+    setIntensity,
     stopTimer,
     startTimer,
     markRoomAsCleared,

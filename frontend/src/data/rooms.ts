@@ -1,11 +1,12 @@
 export type PuzzleType = "ai-riddle" | "sudoku" | "logic-board";
+export type RoomDifficulty = "easy" | "medium" | "hard";
 
 export type Room = {
   id: number;
   title: string;
   subtitle: string;
   theme: string;
-  difficulty: string;
+  difficulty: RoomDifficulty;
   themeClass: string;
   unlocked: boolean;
   puzzleType: PuzzleType;

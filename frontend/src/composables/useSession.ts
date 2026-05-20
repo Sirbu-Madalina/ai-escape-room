@@ -7,6 +7,7 @@ import {
   type GameSession,
   type SessionPlayer,
 } from "../services/sessionClient";
+import type { IntensityLevel } from "../data/intensity";
 import { connectSessionSocket } from "../services/sessionSocket";
 
 const STORED_SESSION_KEY = "ai-escape-room-session";
@@ -170,7 +171,7 @@ export const useSession = ({
     }
   };
 
-  const createSession = async () => {
+  const createSession = async (intensity: IntensityLevel) => {
     const normalizedPlayerName = ensurePlayerName();
 
     if (!normalizedPlayerName) {
@@ -181,7 +182,7 @@ export const useSession = ({
     sessionError.value = "";
 
     try {
-      const result = await createSessionRequest(normalizedPlayerName);
+      const result = await createSessionRequest(normalizedPlayerName, intensity);
       applyJoinedSession(result.session, result.player);
     } catch (error) {
       sessionError.value = error instanceof Error ? error.message : "Failed to create session.";

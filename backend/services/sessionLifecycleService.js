@@ -9,8 +9,8 @@ import {
   touchSession,
 } from "./sessionStore.js";
 
-export const createSession = ({ playerName }) => {
-  const result = createSessionRecord({ playerName });
+export const createSession = ({ playerName, intensity }) => {
+  const result = createSessionRecord({ playerName, intensity });
 
   return {
     session: sanitizeSession(result.session),

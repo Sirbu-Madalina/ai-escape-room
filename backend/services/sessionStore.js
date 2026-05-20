@@ -1,37 +1,53 @@
 import crypto from "crypto";
+import { getIntensityOption, normalizeIntensity } from "../data/intensity.js";
 import { initialRooms } from "../data/initialRooms.js";
 
-export const MAX_LIVES = 3;
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 6;
 export const DISCONNECTED_SESSION_TTL_MS = 1000 * 60 * 30;
 export const PRESENCE_STALE_MS = 1000 * 8;
 
 const sessions = new Map();
 
-export const cloneRooms = () => initialRooms.map((room) => ({ ...room }));
+export const cloneRooms = (intensity = "medium") => {
+  const option = getIntensityOption(intensity);
 
-export const createInitialGameState = () => ({
-  currentScreen: "lobby",
-  selectedRoomId: 1,
-  lives: MAX_LIVES,
-  rooms: cloneRooms(),
-  clearedRoomIds: [],
-  roomCleared: false,
-  secondsLeft: initialRooms[0].timeLimitSeconds,
-  activePuzzle: null,
-  puzzleInstanceId: 0,
-  textAnswerDraft: "",
-  logicBoardDraft: "",
-  sudokuDraft: [],
-  loading: false,
-  hintUsed: false,
-  answerUsed: false,
-  showHint: false,
-  showAnswerText: false,
-  showSudokuSolution: false,
-  showExplanation: false,
-  message: "",
-});
+  return initialRooms.map((room) => ({
+    ...room,
+    difficulty: option.aiDifficulty,
+    timeLimitSeconds: Math.max(30, Math.round(room.timeLimitSeconds * option.timeMultiplier)),
+  }));
+};
+
+export const createInitialGameState = (intensity = "medium") => {
+  const normalizedIntensity = normalizeIntensity(intensity);
+  const option = getIntensityOption(normalizedIntensity);
+  const rooms = cloneRooms(normalizedIntensity);
+
+  return {
+    intensity: normalizedIntensity,
+    maxLives: option.lives,
+    currentScreen: "lobby",
+    selectedRoomId: 1,
+    lives: option.lives,
+    rooms,
+    clearedRoomIds: [],
+    roomCleared: false,
+    secondsLeft: rooms[0].timeLimitSeconds,
+    activePuzzle: null,
+    puzzleInstanceId: 0,
+    textAnswerDraft: "",
+    logicBoardDraft: "",
+    sudokuDraft: [],
+    loading: false,
+    hintUsed: false,
+    answerUsed: false,
+    showHint: false,
+    showAnswerText: false,
+    showSudokuSolution: false,
+    showExplanation: false,
+    message: "",
+  };
+};
 
 const createPlayer = (name, { isHost = false } = {}) => {
   const now = new Date().toISOString();
@@ -94,7 +110,7 @@ const generateUniqueJoinCode = () => {
   return joinCode;
 };
 
-export const createSessionRecord = ({ playerName }) => {
+export const createSessionRecord = ({ playerName, intensity }) => {
   const host = createPlayer(playerName, { isHost: true });
   const now = new Date().toISOString();
   const session = {
@@ -106,7 +122,7 @@ export const createSessionRecord = ({ playerName }) => {
     hostPlayerId: host.id,
     players: [host],
     chatMessages: [],
-    gameState: createInitialGameState(),
+    gameState: createInitialGameState(intensity),
   };
 
   sessions.set(session.id, session);
