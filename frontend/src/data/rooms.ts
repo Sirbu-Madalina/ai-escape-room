@@ -1,4 +1,4 @@
-export type PuzzleType = "ai-riddle" | "sudoku" | "email-investigation" | "logic-board";
+export type PuzzleType = "ai-riddle" | "email-investigation" | "logic-board";
 export type RoomDifficulty = "easy" | "medium" | "hard";
 
 export type Room = {

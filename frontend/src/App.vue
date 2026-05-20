@@ -237,17 +237,6 @@
             />
           </template>
 
-          <template v-else-if="activePuzzle.kind === 'sudoku'">
-            <label class="input-label">Fill the 4x4 vault grid</label>
-            <SudokuPuzzleBoard
-              :model-value="sudokuGrid"
-              :puzzle="activePuzzle"
-              :disabled="roomCleared"
-              @update:model-value="handleSudokuGridUpdate"
-              @cell-update="handleSudokuCellUpdate"
-            />
-          </template>
-
           <template v-else-if="activePuzzle.kind === 'email-investigation'">
             <EmailInvestigationPuzzleView
               :puzzle="activePuzzle"
@@ -285,15 +274,6 @@
           <p v-if="showExplanation" class="explanation-text">
             Explanation: {{ activePuzzle.explanation }}
           </p>
-
-          <div v-if="showSudokuSolution && activePuzzle.kind === 'sudoku'" class="solution-block">
-            <p class="solution-label">Solution grid</p>
-            <SudokuPuzzleBoard
-              :model-value="activePuzzle.solution"
-              :puzzle="{ ...activePuzzle, givens: activePuzzle.solution }"
-              :disabled="true"
-            />
-          </div>
 
           <div class="mission-footer">
             <div class="timer-pill">
@@ -384,7 +364,6 @@ import SessionChatPanel from "./components/SessionChatPanel.vue";
 import SessionLobbyPanel from "./components/SessionLobbyPanel.vue";
 import EmailInvestigationPuzzleView from "./components/puzzles/EmailInvestigationPuzzle.vue";
 import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
-import SudokuPuzzleBoard from "./components/puzzles/SudokuPuzzle.vue";
 import { useGameplay } from "./composables/useGameplay";
 import { useSession } from "./composables/useSession";
 
@@ -424,7 +403,6 @@ const {
   emitDraftText,
   emitDraftEmail,
   emitDraftLogic,
-  emitDraftSudokuCell,
   emitEditingPresence,
   leaveSession,
   disconnectRealtime,
@@ -453,14 +431,12 @@ const {
   answerInput,
   emailSearchQuery,
   selectedEmailId,
-  sudokuGrid,
   logicBoardSelection,
   message,
   showHint,
   hintUsed,
   answerUsed,
   showAnswerText,
-  showSudokuSolution,
   showExplanation,
   lives,
   clearedRoomIds,
@@ -602,23 +578,10 @@ const handleLogicBoardDraftUpdate = (nextValue: string) => {
   logicBoardSelection.value = nextValue;
 };
 
-const handleSudokuGridUpdate = (nextGrid: number[][]) => {
-  sudokuGrid.value = nextGrid;
-};
-
-const handleSudokuCellUpdate = (payload: { rowIndex: number; columnIndex: number; value: number }) => {
-  if (!session.value) {
-    return;
-  }
-
-  emitDraftSudokuCell(payload);
-};
-
 const handleFailedAttempt = async (failureMessage: string) => {
   lives.value = Math.max(lives.value - 1, 0);
   showHint.value = false;
   showAnswerText.value = false;
-  showSudokuSolution.value = false;
 
   await loadPuzzleForRoom(
     selectedRoom.value,
@@ -771,11 +734,7 @@ const useAnswerReveal = () => {
   answerUsed.value = true;
   lives.value = Math.max(lives.value - 1, 0);
 
-  if (activePuzzle.value.kind === "text" || activePuzzle.value.kind === "logic-board") {
-    showAnswerText.value = true;
-  } else {
-    showSudokuSolution.value = true;
-  }
+  showAnswerText.value = true;
 
   message.value = `You used Get answer and lost 1 life. ${Math.max(lives.value, 0)} left.`;
 };
@@ -784,35 +743,12 @@ const checkAnswer = () => {
   if (session.value) {
     emitSubmitAnswer({
       textAnswer: answerInput.value,
-      sudokuGrid: sudokuGrid.value,
       logicBoardSelection: logicBoardSelection.value,
     });
     return;
   }
 
   if (!activePuzzle.value || roomCleared.value) {
-    return;
-  }
-
-  if (activePuzzle.value.kind === "sudoku") {
-    const sudokuPuzzle = activePuzzle.value;
-    const isComplete = sudokuGrid.value.every((row) => row.every((cell) => cell >= 1 && cell <= 4));
-
-    if (!isComplete) {
-      message.value = "Fill every empty cell before submitting.";
-      return;
-    }
-
-    const isCorrect = sudokuGrid.value.every((row, rowIndex) =>
-      row.every((cell, columnIndex) => cell === sudokuPuzzle.solution[rowIndex][columnIndex]),
-    );
-
-    if (isCorrect) {
-      handleSolvedRoom();
-      return;
-    }
-
-    void handleFailedAttempt("That Sudoku grid is not correct.");
     return;
   }
 

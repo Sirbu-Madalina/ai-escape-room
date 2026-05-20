@@ -280,14 +280,12 @@ export const useSession = ({
     emitGiveUp: () => sessionSocket?.emit("session:give-up"),
     emitHint: () => sessionSocket?.emit("hint:use"),
     emitReveal: () => sessionSocket?.emit("answer:reveal"),
-    emitSubmitAnswer: (payload: { textAnswer: string; sudokuGrid: number[][]; logicBoardSelection: string }) =>
+    emitSubmitAnswer: (payload: { textAnswer: string; logicBoardSelection: string }) =>
       sessionSocket?.emit("answer:submit", payload),
     emitDraftText: (text: string) => sessionSocket?.emit("draft:text", { text }),
     emitDraftEmail: (payload: { searchQuery?: string; selectedEmailId?: string }) =>
       sessionSocket?.emit("draft:email-investigation", payload),
     emitDraftLogic: (selection: string) => sessionSocket?.emit("draft:logic-board", { selection }),
-    emitDraftSudokuCell: (payload: { rowIndex: number; columnIndex: number; value: number }) =>
-      sessionSocket?.emit("draft:sudoku-cell", payload),
     emitEditingPresence: (editingTarget: string) => sessionSocket?.emit("presence:editing", { editingTarget }),
     leaveSession: () => sessionSocket?.emit("session:leave"),
   };

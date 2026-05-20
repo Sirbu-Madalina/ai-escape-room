@@ -8,16 +8,6 @@ export type TextPuzzle = {
   kind: "text";
 };
 
-export type SudokuPuzzle = {
-  title: string;
-  riddle: string;
-  hint: string;
-  explanation: string;
-  kind: "sudoku";
-  givens: number[][];
-  solution: number[][];
-};
-
 export type LogicBoardOption = {
   id: string;
   label: string;

@@ -945,37 +945,6 @@ input:focus {
   margin-top: 18px;
 }
 
-.sudoku-board {
-  display: grid;
-  gap: 10px;
-  width: min(100%, 420px);
-  margin-top: 14px;
-}
-
-.sudoku-board__row {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.sudoku-board__cell {
-  width: 100%;
-  aspect-ratio: 1;
-  min-height: 72px;
-  border: 1px solid rgba(255, 196, 77, 0.32);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #f5f7fb;
-  text-align: center;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.sudoku-board__cell--fixed {
-  background: rgba(255, 196, 77, 0.14);
-  color: #ffd98a;
-}
-
 .solution-block {
   margin-top: 22px;
   padding-top: 18px;
@@ -1614,11 +1583,6 @@ input:focus {
   .mission-card input {
     min-height: 68px;
     padding: 0 18px;
-  }
-
-  .sudoku-board__cell {
-    min-height: 60px;
-    font-size: 1.2rem;
   }
 
   .music-control {

@@ -28,13 +28,11 @@ const resetTransientRoomState = (session) => {
   session.gameState.emailSearchDraft = "";
   session.gameState.emailSelectedId = "";
   session.gameState.logicBoardDraft = "";
-  session.gameState.sudokuDraft = [];
   session.gameState.loading = false;
   session.gameState.hintUsed = false;
   session.gameState.answerUsed = false;
   session.gameState.showHint = false;
   session.gameState.showAnswerText = false;
-  session.gameState.showSudokuSolution = false;
   session.gameState.showExplanation = false;
 };
 
@@ -84,9 +82,6 @@ const loadPuzzleForSelectedRoom = async (session, statusText) => {
   session.gameState.emailSelectedId = puzzle.kind === "email-investigation"
     ? puzzle.emails[0]?.id ?? ""
     : "";
-  session.gameState.sudokuDraft = puzzle.kind === "sudoku"
-    ? puzzle.givens.map((row) => [...row])
-    : [];
   session.gameState.loading = false;
   session.gameState.message = statusText ?? `${room.title} is ready. Solve it before the timer ends.`;
   touchSession(session);
@@ -96,7 +91,6 @@ const handleFailedAttempt = async (session, failureMessage) => {
   session.gameState.lives = Math.max(session.gameState.lives - 1, 0);
   session.gameState.showHint = false;
   session.gameState.showAnswerText = false;
-  session.gameState.showSudokuSolution = false;
   session.gameState.showExplanation = false;
 
   await loadPuzzleForSelectedRoom(
@@ -175,30 +169,6 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
 
   if (!puzzle || session.gameState.roomCleared || session.gameState.loading) {
     return { error: "There is no active shared puzzle right now." };
-  }
-
-  if (puzzle.kind === "sudoku") {
-    const submittedGrid = answerPayload?.sudokuGrid ?? session.gameState.sudokuDraft;
-    const isComplete = Array.isArray(submittedGrid)
-      && submittedGrid.every((row) => Array.isArray(row) && row.every((cell) => cell >= 1 && cell <= 4));
-
-    if (!isComplete) {
-      return { error: "Fill every empty cell before submitting." };
-    }
-
-    const isCorrect = submittedGrid.every((row, rowIndex) =>
-      row.every((cell, columnIndex) => cell === puzzle.solution[rowIndex][columnIndex]),
-    );
-
-    if (isCorrect) {
-      handleSolvedRoom(session);
-      await saveSessionRecord(session);
-      return { session: sanitizeSession(session) };
-    }
-
-    await handleFailedAttempt(session, "That Sudoku grid is not correct.");
-    await saveSessionRecord(session);
-    return { session: sanitizeSession(session) };
   }
 
   if (puzzle.kind === "logic-board") {
@@ -291,11 +261,7 @@ export const revealAnswerSession = async ({ sessionId }) => {
   session.gameState.answerUsed = true;
   session.gameState.lives = Math.max(session.gameState.lives - 1, 0);
 
-  if (puzzle.kind === "sudoku") {
-    session.gameState.showSudokuSolution = true;
-  } else {
-    session.gameState.showAnswerText = true;
-  }
+  session.gameState.showAnswerText = true;
 
   session.gameState.message = `You used Get answer and lost 1 life. ${session.gameState.lives} left.`;
   touchSession(session);
@@ -406,54 +372,6 @@ export const updateLogicBoardDraftSession = async ({ sessionId, selection, actor
   return { session: sanitizeSession(session) };
 };
 
-export const updateSudokuDraftCellSession = async ({ sessionId, rowIndex, columnIndex, value, actorPlayerId }) => {
-  const session = await getSessionRecordOrLoad(sessionId);
-
-  if (!session) {
-    return { error: "Session not found." };
-  }
-
-  const puzzle = session.gameState.activePuzzle;
-
-  if (!puzzle || puzzle.kind !== "sudoku") {
-    return { error: "Sudoku draft is not available right now." };
-  }
-
-  if (
-    rowIndex < 0
-    || rowIndex >= puzzle.givens.length
-    || columnIndex < 0
-    || columnIndex >= puzzle.givens[rowIndex].length
-  ) {
-    return { error: "That Sudoku cell is out of range." };
-  }
-
-  if (puzzle.givens[rowIndex][columnIndex] !== 0) {
-    return { error: "That Sudoku cell is fixed." };
-  }
-
-  const normalizedValue = Number.isInteger(value) ? value : 0;
-
-  if (normalizedValue < 0 || normalizedValue > 4) {
-    return { error: "Sudoku values must be between 0 and 4." };
-  }
-
-  if (session.gameState.sudokuDraft.length === 0) {
-    session.gameState.sudokuDraft = puzzle.givens.map((row) => [...row]);
-  }
-
-  session.gameState.sudokuDraft[rowIndex][columnIndex] = normalizedValue;
-  const player = session.players.find((candidate) => candidate.id === actorPlayerId);
-  if (player) {
-    player.editingTarget = `sudoku r${rowIndex + 1}c${columnIndex + 1}`;
-    player.lastSeenAt = new Date().toISOString();
-  }
-  touchSession(session);
-  await saveSessionRecord(session);
-
-  return { session: sanitizeSession(session) };
-};
-
 export const endSessionRun = async ({ sessionId, actorPlayerId }) => {
   const session = await getSessionRecordOrLoad(sessionId);
 
@@ -506,13 +424,11 @@ export const restartSessionRun = async ({ sessionId, actorPlayerId }) => {
       emailSearchDraft: "",
       emailSelectedId: "",
       logicBoardDraft: "",
-      sudokuDraft: [],
       loading: false,
       hintUsed: false,
       answerUsed: false,
       showHint: false,
       showAnswerText: false,
-      showSudokuSolution: false,
       showExplanation: false,
       message: "",
     },
@@ -557,7 +473,6 @@ export const tickActiveSessions = async ({ sessions }) => {
       || state.loading
       || !state.activePuzzle
       || state.roomCleared
-      || state.showSudokuSolution
       || state.showAnswerText
     ) {
       continue;

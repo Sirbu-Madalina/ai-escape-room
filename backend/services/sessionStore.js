@@ -41,13 +41,11 @@ export const createInitialGameState = (intensity = "medium") => {
     emailSearchDraft: "",
     emailSelectedId: "",
     logicBoardDraft: "",
-    sudokuDraft: [],
     loading: false,
     hintUsed: false,
     answerUsed: false,
     showHint: false,
     showAnswerText: false,
-    showSudokuSolution: false,
     showExplanation: false,
     message: "",
   };

@@ -6,7 +6,6 @@ import {
   createStructuredSchemaResponse,
   generateStructuredJson,
 } from "./openaiService.js";
-import { createSudokuPuzzle } from "./sudokuService.js";
 import {
   validateEmailInvestigationPuzzle,
   validateLogicBoardPuzzle,
@@ -246,10 +245,6 @@ export const createPuzzleForRoom = async (room) => {
       kind: "text",
       inputPlaceholder: "Type the answer",
     };
-  }
-
-  if (room.puzzleType === "sudoku") {
-    return createSudokuPuzzle();
   }
 
   if (room.puzzleType === "email-investigation") {

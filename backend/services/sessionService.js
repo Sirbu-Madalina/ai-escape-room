@@ -15,7 +15,6 @@ export {
   tickActiveSessions,
   updateEmailInvestigationDraftSession,
   updateLogicBoardDraftSession,
-  updateSudokuDraftCellSession,
   updateTextDraftSession,
   useHintSession,
 } from "./sessionGameplayService.js";

@@ -5,7 +5,7 @@ import {
   intensityOptions,
   type IntensityLevel,
 } from "../data/intensity";
-import type { EmailInvestigationPuzzle, LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type { EmailInvestigationPuzzle, LogicBoardPuzzle, TextPuzzle } from "../data/localPuzzles";
 import type { Room } from "../data/rooms";
 import { initialRooms } from "../data/rooms";
 import type { GameSession } from "../services/sessionClient";
@@ -14,7 +14,7 @@ type AiPuzzle = TextPuzzle & {
   answer: string;
 };
 
-type Puzzle = AiPuzzle | SudokuPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
+type Puzzle = AiPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
 const API_BASE_URL = "http://localhost:5001/api";
@@ -29,14 +29,12 @@ export const useGameplay = () => {
   const answerInput = ref("");
   const emailSearchQuery = ref("");
   const selectedEmailId = ref("");
-  const sudokuGrid = ref<number[][]>([]);
   const logicBoardSelection = ref("");
   const message = ref("");
   const showHint = ref(false);
   const hintUsed = ref(false);
   const answerUsed = ref(false);
   const showAnswerText = ref(false);
-  const showSudokuSolution = ref(false);
   const showExplanation = ref(false);
   const maxLives = ref(getIntensityOption(selectedIntensity.value).lives);
   const lives = ref(maxLives.value);
@@ -94,13 +92,11 @@ export const useGameplay = () => {
     answerInput.value = "";
     emailSearchQuery.value = "";
     selectedEmailId.value = "";
-    sudokuGrid.value = [];
     logicBoardSelection.value = "";
     message.value = "";
     showExplanation.value = false;
     roomCleared.value = false;
     showAnswerText.value = false;
-    showSudokuSolution.value = false;
   };
 
   const resetRoomActions = () => {
@@ -108,7 +104,6 @@ export const useGameplay = () => {
     hintUsed.value = false;
     answerUsed.value = false;
     showAnswerText.value = false;
-    showSudokuSolution.value = false;
   };
 
   const resetProgressionRooms = () => {
@@ -197,16 +192,6 @@ export const useGameplay = () => {
   };
 
   const buildLocalPuzzle = (room: Room) => {
-    if (room.puzzleType === "sudoku") {
-      return fetch(`${API_BASE_URL}/sudoku`).then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Sudoku request failed");
-        }
-
-        return response.json() as Promise<SudokuPuzzle>;
-      });
-    }
-
     if (room.puzzleType === "logic-board") {
       return fetch(`${API_BASE_URL}/logic-board`, {
         method: "POST",
@@ -257,10 +242,6 @@ export const useGameplay = () => {
         ? await buildAiPuzzle(room)
         : await buildLocalPuzzle(room);
 
-      if (activePuzzle.value.kind === "sudoku") {
-        sudokuGrid.value = activePuzzle.value.givens.map((row) => [...row]);
-      }
-
       if (activePuzzle.value.kind === "email-investigation") {
         selectedEmailId.value = activePuzzle.value.emails[0]?.id ?? "";
       }
@@ -294,7 +275,6 @@ export const useGameplay = () => {
     answerUsed.value = nextSession.gameState.answerUsed;
     showHint.value = nextSession.gameState.showHint;
     showAnswerText.value = nextSession.gameState.showAnswerText;
-    showSudokuSolution.value = nextSession.gameState.showSudokuSolution;
     showExplanation.value = nextSession.gameState.showExplanation;
     message.value = nextSession.gameState.message;
     answerInput.value = nextSession.gameState.textAnswerDraft;
@@ -307,12 +287,6 @@ export const useGameplay = () => {
       emailSearchQuery.value = nextSession.gameState.emailSearchDraft ?? "";
       selectedEmailId.value = nextSession.gameState.emailSelectedId ?? "";
       logicBoardSelection.value = nextSession.gameState.logicBoardDraft;
-    }
-
-    if (activePuzzle.value?.kind === "sudoku") {
-      sudokuGrid.value = nextSession.gameState.sudokuDraft.map((row) => [...row]);
-    } else {
-      sudokuGrid.value = [];
     }
 
     stopTimer();
@@ -330,14 +304,12 @@ export const useGameplay = () => {
     answerInput,
     emailSearchQuery,
     selectedEmailId,
-    sudokuGrid,
     logicBoardSelection,
     message,
     showHint,
     hintUsed,
     answerUsed,
     showAnswerText,
-    showSudokuSolution,
     showExplanation,
     lives,
     secondsLeft,

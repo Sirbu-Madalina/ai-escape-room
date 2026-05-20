@@ -11,7 +11,6 @@ import {
   updateEmailInvestigationDraftSession,
   updateLogicBoardDraftSession,
   updatePlayerPresence,
-  updateSudokuDraftCellSession,
   updateTextDraftSession,
   useHintSession,
   revealAnswerSession,
@@ -208,26 +207,6 @@ export const registerSessionSocket = (io) => {
         sessionId,
         searchQuery,
         selectedEmailId,
-        actorPlayerId: socket.data.playerId,
-      });
-
-      if (result.session) {
-        io.to(sessionId).emit("session:state", result.session);
-      }
-    });
-
-    socket.on("draft:sudoku-cell", async ({ rowIndex, columnIndex, value }) => {
-      const sessionId = socket.data.sessionId;
-
-      if (!sessionId) {
-        return;
-      }
-
-      const result = await updateSudokuDraftCellSession({
-        sessionId,
-        rowIndex,
-        columnIndex,
-        value,
         actorPlayerId: socket.data.playerId,
       });
 

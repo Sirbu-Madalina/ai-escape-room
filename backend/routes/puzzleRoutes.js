@@ -3,7 +3,6 @@ import {
   createEmailInvestigationPuzzle,
   createLogicBoardPuzzle,
   createRiddlePuzzle,
-  createPuzzleForRoom,
 } from "../services/puzzleService.js";
 
 const router = express.Router();
@@ -18,19 +17,6 @@ router.post("/riddle", async (req, res) => {
     console.error("Riddle generation error:", error);
     res.status(500).json({
       error: "Failed to generate riddle",
-    });
-  }
-});
-
-// /api/sudoku
-// Generates a Sudoku puzzle with code for Room 2.
-router.get("/sudoku", async (req, res) => {
-  try {
-    res.json(await createPuzzleForRoom({ puzzleType: "sudoku" }));
-  } catch (error) {
-    console.error("Sudoku generation error:", error);
-    res.status(500).json({
-      error: "Failed to generate sudoku",
     });
   }
 });
