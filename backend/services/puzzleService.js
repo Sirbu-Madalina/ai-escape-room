@@ -54,13 +54,17 @@ Difficulty: ${difficulty}
 
 The player sees a suspicious company inbox with a search bar, opens emails, and discovers an override code.
 The puzzle must be solvable by reading clues in the emails and employee profile.
-Use this core clue pattern:
-- One email hints that the override code is stored where nobody checks twice.
-- Another email hints that Dr. Hayes uses his birthday for everything.
-- The employee profile contains the birthday.
-- The answer should be a short numeric override code derived from the birthday, like MMDD.
+Do not make the answer simply a birthday. The final code must require combining 3 or 4 separate clues.
+Use one of these patterns, or invent a similar one:
+- project prefix + lab number + shift marker
+- employee badge suffix + archive shelf + color keyword
+- department code + incident number + approval initial
+- server name fragment + floor number + backup window
 
-Write 4 to 6 emails. Include at least 2 suspicious clue emails and 1 harmless noise email.
+The employee profile may contain one clue, but never the whole answer.
+Write 5 to 6 emails. Include 3 clue emails, 1 suspicious misdirection or warning, and 1 harmless noise email.
+Every clue email should reveal a different kind of evidence.
+The "clues" array should summarize the evidence pieces needed to solve the final code.
 Keep the language concise and readable.
 `,
       schemaName: "email_investigation_puzzle",
@@ -79,13 +83,30 @@ Keep the language concise and readable.
               name: { type: "string" },
               role: { type: "string" },
               birthday: { type: "string" },
+              detailLabel: { type: "string" },
+              detailValue: { type: "string" },
               notes: { type: "string" },
             },
-            required: ["name", "role", "birthday", "notes"],
+            required: ["name", "role", "detailLabel", "detailValue", "notes"],
+          },
+          clues: {
+            type: "array",
+            minItems: 4,
+            maxItems: 4,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                label: { type: "string" },
+                value: { type: "string" },
+                discovered: { type: "boolean" },
+              },
+              required: ["label", "value", "discovered"],
+            },
           },
           emails: {
             type: "array",
-            minItems: 4,
+            minItems: 5,
             maxItems: 6,
             items: {
               type: "object",
@@ -97,6 +118,10 @@ Keep the language concise and readable.
                 subject: { type: "string" },
                 preview: { type: "string" },
                 body: { type: "string" },
+                time: { type: "string" },
+                priority: { type: "string", enum: ["normal", "clue", "danger"] },
+                clueSummary: { type: "string" },
+                attachmentName: { type: "string" },
                 tags: {
                   type: "array",
                   minItems: 1,
@@ -104,12 +129,24 @@ Keep the language concise and readable.
                   items: { type: "string" },
                 },
               },
-              required: ["id", "from", "to", "subject", "preview", "body", "tags"],
+              required: [
+                "id",
+                "from",
+                "to",
+                "subject",
+                "preview",
+                "body",
+                "time",
+                "priority",
+                "clueSummary",
+                "attachmentName",
+                "tags",
+              ],
             },
           },
           answer: { type: "string" },
         },
-        required: ["title", "riddle", "hint", "explanation", "employeeProfile", "emails", "answer"],
+        required: ["title", "riddle", "hint", "explanation", "employeeProfile", "clues", "emails", "answer"],
       },
     });
 

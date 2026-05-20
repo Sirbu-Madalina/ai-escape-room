@@ -42,14 +42,26 @@ export type ResearchEmail = {
   subject: string;
   preview: string;
   body: string;
+  time: string;
+  priority: "normal" | "clue" | "danger";
+  clueSummary: string;
+  attachmentName: string;
   tags: string[];
 };
 
 export type EmployeeProfile = {
   name: string;
   role: string;
-  birthday: string;
+  detailLabel?: string;
+  detailValue?: string;
+  birthday?: string;
   notes: string;
+};
+
+export type InvestigationClue = {
+  label: string;
+  value: string;
+  discovered: boolean;
 };
 
 export type EmailInvestigationPuzzle = {
@@ -60,6 +72,7 @@ export type EmailInvestigationPuzzle = {
   kind: "email-investigation";
   employeeProfile: EmployeeProfile;
   emails: ResearchEmail[];
+  clues?: InvestigationClue[];
   answer: string;
   inputPlaceholder: string;
 };

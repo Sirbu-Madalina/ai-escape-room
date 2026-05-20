@@ -1049,42 +1049,77 @@ input:focus {
 
 .email-investigation {
   display: grid;
-  gap: 20px;
+  gap: 16px;
   margin-top: 18px;
-}
-
-.email-investigation__toolbar .input-label {
-  margin-top: 0;
 }
 
 .email-investigation__workspace {
   display: grid;
-  grid-template-columns: minmax(240px, 0.42fr) minmax(0, 0.58fr);
-  gap: 18px;
-  min-height: 360px;
+  grid-template-columns: minmax(280px, 0.32fr) minmax(0, 0.68fr);
+  gap: 14px;
+  min-height: 540px;
 }
 
 .email-investigation__inbox,
+.email-investigation__reader,
 .email-investigation__content,
-.email-investigation__profile {
+.email-investigation__profile,
+.email-investigation__notes,
+.email-investigation__clues {
   border: 1px solid rgba(255, 196, 77, 0.18);
   border-radius: 8px;
-  background: rgba(7, 10, 18, 0.5);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(7, 10, 18, 0.55);
 }
 
 .email-investigation__inbox {
   display: grid;
   align-content: start;
-  gap: 10px;
-  padding: 12px;
+  gap: 14px;
+  padding: 18px;
   overflow: auto;
+}
+
+.email-investigation__panel-header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.email-investigation__panel-header strong {
+  color: #9da8c3;
+  font-size: 0.9rem;
+}
+
+.email-investigation__search {
+  position: relative;
+}
+
+.email-investigation__search input {
+  min-height: 46px;
+  padding-left: 42px;
+  border-radius: 8px;
+  background: rgba(8, 12, 22, 0.75);
+}
+
+.email-investigation__search span {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  color: #9da8c3;
+  transform: translateY(-50%);
+}
+
+.email-investigation__email-list {
+  display: grid;
+  gap: 8px;
 }
 
 .email-investigation__email {
   display: grid;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
-  padding: 14px;
+  padding: 13px 14px;
   border-radius: 8px;
   text-align: left;
   color: #f5f7fb;
@@ -1092,11 +1127,17 @@ input:focus {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.email-investigation__email span,
+.email-investigation__sender,
 .email-investigation__email small,
-.email-investigation__meta,
 .email-investigation__empty {
   color: #9da8c3;
+}
+
+.email-investigation__sender {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.9rem;
 }
 
 .email-investigation__email strong {
@@ -1109,12 +1150,83 @@ input:focus {
   box-shadow: 0 0 0 1px rgba(255, 196, 77, 0.14);
 }
 
-.email-investigation__content {
+.email-investigation__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #4f83ff;
+}
+
+.email-investigation__dot--clue {
+  background: #ffc44d;
+}
+
+.email-investigation__dot--danger {
+  background: #ff4d4d;
+}
+
+.email-investigation__reader {
+  min-width: 0;
+}
+
+.email-investigation__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(135, 148, 180, 0.14);
+  color: #b6c2df;
+  font-size: 0.9rem;
+}
+
+.email-investigation__actions strong {
+  margin-left: auto;
+  color: #9da8c3;
+  font-weight: 500;
+}
+
+.email-investigation__reader-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 0.36fr);
+  gap: 22px;
   padding: 22px;
 }
 
+.email-investigation__content {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.email-investigation__author-row,
+.email-investigation__profile-name {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.email-investigation__author-row p {
+  margin: 3px 0 0;
+  color: #9da8c3;
+}
+
+.email-investigation__avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #ffc44d;
+  background: rgba(255, 196, 77, 0.14);
+  box-shadow: 0 0 22px rgba(255, 196, 77, 0.12);
+  font-weight: 900;
+}
+
 .email-investigation__content h3 {
-  margin-top: 10px;
+  margin-top: 24px;
   font-size: 1.45rem;
 }
 
@@ -1124,31 +1236,38 @@ input:focus {
   line-height: 1.7;
 }
 
-.email-investigation__tags {
+.email-investigation__attachment,
+.email-investigation__clue-callout {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 20px;
+  gap: 14px;
+  align-items: center;
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(135, 148, 180, 0.16);
+  background: rgba(255, 255, 255, 0.035);
 }
 
-.email-investigation__tags span {
-  padding: 6px 9px;
-  border-radius: 999px;
-  color: #ffd98a;
-  background: rgba(255, 196, 77, 0.1);
-  border: 1px solid rgba(255, 196, 77, 0.2);
-  font-size: 0.8rem;
+.email-investigation__attachment small,
+.email-investigation__clue-callout p {
+  display: block;
+  margin-top: 4px;
+  color: #9da8c3;
+}
+
+.email-investigation__clue-callout {
+  color: #ffc44d;
 }
 
 .email-investigation__profile {
   padding: 18px;
+  align-self: start;
 }
 
 .email-investigation__profile dl {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 .email-investigation__profile dt {
@@ -1163,6 +1282,76 @@ input:focus {
   margin-top: 6px;
   color: #f5f7fb;
   line-height: 1.45;
+}
+
+.email-investigation__bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+  gap: 14px;
+}
+
+.email-investigation__notes,
+.email-investigation__clues {
+  padding: 18px;
+}
+
+.email-investigation__note-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.email-investigation__note-list article,
+.email-investigation__note-list label {
+  min-height: 96px;
+  padding: 14px;
+  border-radius: 8px;
+  border: 1px solid rgba(135, 148, 180, 0.16);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.email-investigation__note-list p,
+.email-investigation__note-list span {
+  display: block;
+  margin-top: 8px;
+  color: #9da8c3;
+}
+
+.email-investigation__note-list input {
+  min-height: 44px;
+  margin-top: 10px;
+}
+
+.email-investigation__clues-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.email-investigation__clues-header span {
+  color: #dbe3f5;
+}
+
+.email-investigation__clues ul {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  list-style: none;
+}
+
+.email-investigation__clues li {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: #c7d2eb;
+  border: 1px solid rgba(135, 148, 180, 0.14);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.email-investigation__clues li span {
+  color: #7df7b7;
 }
 
 .mission-footer {
@@ -1392,7 +1581,9 @@ input:focus {
   }
 
   .email-investigation__workspace,
-  .email-investigation__profile dl {
+  .email-investigation__reader-body,
+  .email-investigation__bottom-grid,
+  .email-investigation__note-list {
     grid-template-columns: 1fr;
   }
 }

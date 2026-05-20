@@ -66,14 +66,29 @@ export const validateEmailInvestigationPuzzle = (value) => {
   if (
     typeof profile?.name !== "string" ||
     typeof profile?.role !== "string" ||
-    typeof profile?.birthday !== "string" ||
+    typeof profile?.detailLabel !== "string" ||
+    typeof profile?.detailValue !== "string" ||
     typeof profile?.notes !== "string"
   ) {
     throw new Error("Invalid email investigation payload: malformed employee profile");
   }
 
-  if (!Array.isArray(value.emails) || value.emails.length < 4 || value.emails.length > 6) {
-    throw new Error("Invalid email investigation payload: emails must contain 4 to 6 items");
+  if (!Array.isArray(value.clues) || value.clues.length !== 4) {
+    throw new Error("Invalid email investigation payload: clues must contain 4 items");
+  }
+
+  const hasValidClues = value.clues.every((clue) =>
+    typeof clue?.label === "string" &&
+    typeof clue?.value === "string" &&
+    typeof clue?.discovered === "boolean"
+  );
+
+  if (!hasValidClues) {
+    throw new Error("Invalid email investigation payload: malformed clue");
+  }
+
+  if (!Array.isArray(value.emails) || value.emails.length < 5 || value.emails.length > 6) {
+    throw new Error("Invalid email investigation payload: emails must contain 5 to 6 items");
   }
 
   const hasValidEmails = value.emails.every((email) =>
@@ -83,6 +98,10 @@ export const validateEmailInvestigationPuzzle = (value) => {
     typeof email?.subject === "string" &&
     typeof email?.preview === "string" &&
     typeof email?.body === "string" &&
+    typeof email?.time === "string" &&
+    ["normal", "clue", "danger"].includes(email?.priority) &&
+    typeof email?.clueSummary === "string" &&
+    typeof email?.attachmentName === "string" &&
     Array.isArray(email?.tags) &&
     email.tags.every((tag) => typeof tag === "string")
   );
