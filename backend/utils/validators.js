@@ -52,3 +52,42 @@ export const validateLogicBoardPuzzle = (value) => {
     throw new Error("Invalid logic board payload: answer does not match any option");
   }
 };
+
+export const validateEmailInvestigationPuzzle = (value) => {
+  const requiredTextKeys = ["title", "riddle", "hint", "explanation", "answer"];
+
+  for (const key of requiredTextKeys) {
+    if (typeof value?.[key] !== "string" || value[key].trim() === "") {
+      throw new Error(`Invalid email investigation payload: missing ${key}`);
+    }
+  }
+
+  const profile = value.employeeProfile;
+  if (
+    typeof profile?.name !== "string" ||
+    typeof profile?.role !== "string" ||
+    typeof profile?.birthday !== "string" ||
+    typeof profile?.notes !== "string"
+  ) {
+    throw new Error("Invalid email investigation payload: malformed employee profile");
+  }
+
+  if (!Array.isArray(value.emails) || value.emails.length < 4 || value.emails.length > 6) {
+    throw new Error("Invalid email investigation payload: emails must contain 4 to 6 items");
+  }
+
+  const hasValidEmails = value.emails.every((email) =>
+    typeof email?.id === "string" &&
+    typeof email?.from === "string" &&
+    typeof email?.to === "string" &&
+    typeof email?.subject === "string" &&
+    typeof email?.preview === "string" &&
+    typeof email?.body === "string" &&
+    Array.isArray(email?.tags) &&
+    email.tags.every((tag) => typeof tag === "string")
+  );
+
+  if (!hasValidEmails) {
+    throw new Error("Invalid email investigation payload: malformed email");
+  }
+};

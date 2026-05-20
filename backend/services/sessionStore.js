@@ -38,6 +38,8 @@ export const createInitialGameState = (intensity = "medium") => {
     activePuzzle: null,
     puzzleInstanceId: 0,
     textAnswerDraft: "",
+    emailSearchDraft: "",
+    emailSelectedId: "",
     logicBoardDraft: "",
     sudokuDraft: [],
     loading: false,

@@ -13,6 +13,7 @@ export {
   startRoomSession,
   submitAnswerSession,
   tickActiveSessions,
+  updateEmailInvestigationDraftSession,
   updateLogicBoardDraftSession,
   updateSudokuDraftCellSession,
   updateTextDraftSession,

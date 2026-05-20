@@ -1,4 +1,4 @@
-export type PuzzleType = "ai-riddle" | "sudoku" | "logic-board";
+export type PuzzleType = "ai-riddle" | "sudoku" | "email-investigation" | "logic-board";
 export type RoomDifficulty = "easy" | "medium" | "hard";
 
 export type Room = {
@@ -28,12 +28,12 @@ export const initialRooms: Room[] = [
   {
     id: 2,
     title: "Room 2",
-    subtitle: "AI Escape Room - Vault Core",
-    theme: "digital vault",
+    subtitle: "AI Escape Room - Research Emails",
+    theme: "suspicious company inbox",
     difficulty: "medium",
     themeClass: "gold",
     unlocked: false,
-    puzzleType: "sudoku",
+    puzzleType: "email-investigation",
     timeLimitSeconds: 150,
   },
   {

@@ -13,12 +13,12 @@ export const initialRooms = [
   {
     id: 2,
     title: "Room 2",
-    subtitle: "AI Escape Room - Vault Core",
-    theme: "digital vault",
+    subtitle: "AI Escape Room - Research Emails",
+    theme: "suspicious company inbox",
     difficulty: "medium",
     themeClass: "gold",
     unlocked: false,
-    puzzleType: "sudoku",
+    puzzleType: "email-investigation",
     timeLimitSeconds: 150,
   },
   {

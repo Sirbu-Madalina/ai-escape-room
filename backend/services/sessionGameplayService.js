@@ -25,6 +25,8 @@ const resetTransientRoomState = (session) => {
   session.gameState.roomCleared = false;
   session.gameState.activePuzzle = null;
   session.gameState.textAnswerDraft = "";
+  session.gameState.emailSearchDraft = "";
+  session.gameState.emailSelectedId = "";
   session.gameState.logicBoardDraft = "";
   session.gameState.sudokuDraft = [];
   session.gameState.loading = false;
@@ -79,6 +81,9 @@ const loadPuzzleForSelectedRoom = async (session, statusText) => {
   const puzzle = await createPuzzleForRoom(room);
   session.gameState.puzzleInstanceId += 1;
   session.gameState.activePuzzle = puzzle;
+  session.gameState.emailSelectedId = puzzle.kind === "email-investigation"
+    ? puzzle.emails[0]?.id ?? ""
+    : "";
   session.gameState.sudokuDraft = puzzle.kind === "sudoku"
     ? puzzle.givens.map((row) => [...row])
     : [];
@@ -214,6 +219,25 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
     return { session: sanitizeSession(session) };
   }
 
+  if (puzzle.kind === "email-investigation") {
+    const userAnswer = (answerPayload?.textAnswer ?? session.gameState.textAnswerDraft)?.trim().toLowerCase();
+    const correctAnswer = puzzle.answer.trim().toLowerCase();
+
+    if (!userAnswer) {
+      return { error: "Enter the override code before submitting." };
+    }
+
+    if (userAnswer === correctAnswer) {
+      handleSolvedRoom(session);
+      await saveSessionRecord(session);
+      return { session: sanitizeSession(session) };
+    }
+
+    await handleFailedAttempt(session, "That override code is not correct.");
+    await saveSessionRecord(session);
+    return { session: sanitizeSession(session) };
+  }
+
   const userAnswer = (answerPayload?.textAnswer ?? session.gameState.textAnswerDraft)?.trim().toLowerCase();
   const correctAnswer = puzzle.answer.trim().toLowerCase();
 
@@ -287,7 +311,10 @@ export const updateTextDraftSession = async ({ sessionId, text, actorPlayerId })
     return { error: "Session not found." };
   }
 
-  if (!session.gameState.activePuzzle || session.gameState.activePuzzle.kind !== "text") {
+  if (
+    !session.gameState.activePuzzle ||
+    !["text", "email-investigation"].includes(session.gameState.activePuzzle.kind)
+  ) {
     return { error: "Text draft is not available right now." };
   }
 
@@ -297,6 +324,50 @@ export const updateTextDraftSession = async ({ sessionId, text, actorPlayerId })
     player.editingTarget = "answer";
     player.lastSeenAt = new Date().toISOString();
   }
+  touchSession(session);
+  await saveSessionRecord(session);
+
+  return { session: sanitizeSession(session) };
+};
+
+export const updateEmailInvestigationDraftSession = async ({
+  sessionId,
+  searchQuery,
+  selectedEmailId,
+  actorPlayerId,
+}) => {
+  const session = await getSessionRecordOrLoad(sessionId);
+
+  if (!session) {
+    return { error: "Session not found." };
+  }
+
+  const puzzle = session.gameState.activePuzzle;
+
+  if (!puzzle || puzzle.kind !== "email-investigation") {
+    return { error: "Email investigation draft is not available right now." };
+  }
+
+  if (typeof searchQuery === "string") {
+    session.gameState.emailSearchDraft = searchQuery.slice(0, 80);
+  }
+
+  if (typeof selectedEmailId === "string") {
+    const isValidEmail = selectedEmailId === "" || puzzle.emails.some((email) => email.id === selectedEmailId);
+
+    if (!isValidEmail) {
+      return { error: "That email is not available." };
+    }
+
+    session.gameState.emailSelectedId = selectedEmailId;
+  }
+
+  const player = session.players.find((candidate) => candidate.id === actorPlayerId);
+  if (player) {
+    player.editingTarget = "email inbox";
+    player.lastSeenAt = new Date().toISOString();
+  }
+
   touchSession(session);
   await saveSessionRecord(session);
 
@@ -432,6 +503,8 @@ export const restartSessionRun = async ({ sessionId, actorPlayerId }) => {
       activePuzzle: null,
       puzzleInstanceId: 0,
       textAnswerDraft: "",
+      emailSearchDraft: "",
+      emailSelectedId: "",
       logicBoardDraft: "",
       sudokuDraft: [],
       loading: false,

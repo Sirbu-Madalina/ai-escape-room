@@ -8,6 +8,7 @@ import {
   restartSessionRun,
   startRoomSession,
   submitAnswerSession,
+  updateEmailInvestigationDraftSession,
   updateLogicBoardDraftSession,
   updatePlayerPresence,
   updateSudokuDraftCellSession,
@@ -109,7 +110,7 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const pendingSession = getSessionById(sessionId);
+      const pendingSession = await getSessionById(sessionId);
 
       if (pendingSession && pendingSession.hostPlayerId === socket.data.playerId) {
         pendingSession.gameState.currentScreen = "room";
@@ -188,6 +189,25 @@ export const registerSessionSocket = (io) => {
       const result = await updateLogicBoardDraftSession({
         sessionId,
         selection,
+        actorPlayerId: socket.data.playerId,
+      });
+
+      if (result.session) {
+        io.to(sessionId).emit("session:state", result.session);
+      }
+    });
+
+    socket.on("draft:email-investigation", async ({ searchQuery, selectedEmailId }) => {
+      const sessionId = socket.data.sessionId;
+
+      if (!sessionId) {
+        return;
+      }
+
+      const result = await updateEmailInvestigationDraftSession({
+        sessionId,
+        searchQuery,
+        selectedEmailId,
         actorPlayerId: socket.data.playerId,
       });
 

@@ -31,103 +31,140 @@
     </label>
   </section>
 
-  <main v-if="currentScreen === 'lobby'" class="app-shell">
-    <section class="hero-section">
-      <p class="eyebrow">MindLock Protocol</p>
-      <h1>Choose Your Escape Room</h1>
-      <p class="hero-copy">
-        <template v-if="session">
-          Your lives are shared across the whole game. Clear one room to unlock the next.
-        </template>
-        <template v-else>
-          Jump straight into a solo run, or start a shared session if you want to escape with friends.
-        </template>
-      </p>
+  <main v-if="currentScreen === 'lobby'" class="app-shell lobby-dashboard-shell">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero__copy">
+        <p class="eyebrow">AI Escape Room Experience</p>
+        <h1>MindLock Protocol</h1>
+        <p class="hero-copy">
+          <template v-if="session">
+            Solve together in one shared run. Host controls the flow while the team cracks clues live.
+          </template>
+          <template v-else>
+            Solve solo immediately, or create a shared session when you want friends in the room.
+          </template>
+        </p>
+      </div>
+
+      <section class="dashboard-stats" aria-label="Run status">
+        <article class="dashboard-stat">
+          <span class="dashboard-stat__icon dashboard-stat__icon--life" aria-hidden="true"></span>
+          <div>
+            <span class="status-chip__label">Lives</span>
+            <strong>{{ lives }} / {{ maxLives }}</strong>
+            <p>{{ selectedIntensityLabel }} pressure</p>
+          </div>
+        </article>
+
+        <article class="dashboard-stat">
+          <span class="dashboard-stat__ring" :style="{ '--progress': `${progressPercent}%` }" aria-hidden="true"></span>
+          <div>
+            <span class="status-chip__label">Progress</span>
+            <strong>{{ progressPercent }}%</strong>
+            <p>{{ clearedRoomsCount }} / {{ rooms.length }} rooms cleared</p>
+            <span class="progress-track">
+              <span :style="{ width: `${progressPercent}%` }"></span>
+            </span>
+          </div>
+        </article>
+
+        <article class="dashboard-stat">
+          <span class="dashboard-stat__icon dashboard-stat__icon--session" aria-hidden="true"></span>
+          <div>
+            <span class="status-chip__label">{{ session ? "Session Code" : "Mode" }}</span>
+            <strong>{{ session?.joinCode ?? "Solo Ready" }}</strong>
+            <p>{{ session ? "Share with friends" : "Co-op is optional" }}</p>
+          </div>
+        </article>
+      </section>
     </section>
 
-    <section class="game-status-bar">
-      <div class="status-chip">
-        <span class="status-chip__label">Lives</span>
-        <strong>{{ lives }}/{{ maxLives }}</strong>
+    <section class="dashboard-layout">
+      <div class="dashboard-main">
+        <section class="dashboard-panel rooms-panel">
+          <div class="dashboard-panel__header">
+            <div>
+              <p class="panel-label">Escape Rooms</p>
+              <h2>Choose your challenge</h2>
+            </div>
+            <span>{{ availableRoomCount }} available</span>
+          </div>
+
+          <section class="room-grid" aria-label="Escape rooms">
+            <RoomCard
+              v-for="room in rooms"
+              :key="room.id"
+              :room="room"
+              :is-selected="selectedRoom.id === room.id"
+              :is-unlocked="room.unlocked"
+              :is-cleared="clearedRoomIds.includes(room.id)"
+              @start="startRoom"
+            />
+          </section>
+        </section>
+
+        <SessionChatPanel
+          v-if="session"
+          :session="session"
+          :realtime-error="realtimeError"
+          :chat-input="chatInput"
+          @update:chat-input="setChatInputValue"
+          @send="sendChatMessage"
+        />
       </div>
 
-      <div class="status-chip">
-        <span class="status-chip__label">Progress</span>
-        <strong>{{ clearedRoomsCount }}/{{ rooms.length }} rooms cleared</strong>
-      </div>
+      <aside class="dashboard-sidebar">
+        <SessionAccessPanel
+          v-if="!session"
+          :player-name="playerName"
+          :join-code="joinCodeInput"
+          :session-loading="sessionLoading"
+          :session-error="sessionError"
+          :realtime-error="realtimeError"
+          @update:player-name="playerName = $event"
+          @update:join-code="joinCodeInput = $event"
+          @create="createSharedSession"
+          @join="joinSession"
+        />
 
-      <div v-if="session" class="status-chip">
-        <span class="status-chip__label">Session</span>
-        <strong>{{ session.joinCode }}</strong>
-      </div>
+        <SessionLobbyPanel
+          v-else
+          :session="session"
+          :current-player-id="currentPlayer?.id ?? ''"
+          :is-host="isHost"
+          :invite-link="inviteLink"
+          :realtime-error="realtimeError"
+          @replay="retryRun"
+          @leave="leaveSession"
+          @copy-invite="copyInviteLink"
+        />
 
-      <div class="status-chip">
-        <span class="status-chip__label">Intensity</span>
-        <strong>{{ selectedIntensityLabel }}</strong>
-      </div>
+        <section class="intensity-panel" aria-label="Intensity level">
+          <div>
+            <p class="panel-label">Intensity</p>
+            <h2>Pressure level</h2>
+          </div>
 
-      <button class="secondary-button lobby-replay-button" @click="retryRun">
-        Replay
-      </button>
-    </section>
+          <div class="intensity-options">
+            <button
+              v-for="option in intensityOptions"
+              :key="option.id"
+              type="button"
+              class="intensity-option"
+              :class="{ 'intensity-option--selected': selectedIntensity === option.id }"
+              :disabled="Boolean(session)"
+              @click="setIntensity(option.id)"
+            >
+              <strong>{{ option.label }}</strong>
+              <span>{{ option.description }}</span>
+            </button>
+          </div>
+        </section>
 
-    <section class="intensity-panel" aria-label="Intensity level">
-      <div>
-        <p class="panel-label">Intensity</p>
-        <h2>Choose the pressure level</h2>
-      </div>
-
-      <div class="intensity-options">
-        <button
-          v-for="option in intensityOptions"
-          :key="option.id"
-          type="button"
-          class="intensity-option"
-          :class="{ 'intensity-option--selected': selectedIntensity === option.id }"
-          :disabled="Boolean(session)"
-          @click="setIntensity(option.id)"
-        >
-          <strong>{{ option.label }}</strong>
-          <span>{{ option.description }}</span>
+        <button class="secondary-button lobby-replay-button" @click="retryRun">
+          Replay Run
         </button>
-      </div>
-    </section>
-
-    <SessionLobbyPanel
-      v-if="session"
-      :session="session"
-      :current-player-id="currentPlayer?.id ?? ''"
-      :is-host="isHost"
-      :invite-link="inviteLink"
-      :realtime-error="realtimeError"
-      @replay="retryRun"
-      @leave="leaveSession"
-      @copy-invite="copyInviteLink"
-    />
-
-    <SessionAccessPanel
-      v-else
-      :player-name="playerName"
-      :join-code="joinCodeInput"
-      :session-loading="sessionLoading"
-      :session-error="sessionError"
-      :realtime-error="realtimeError"
-      @update:player-name="playerName = $event"
-      @update:join-code="joinCodeInput = $event"
-      @create="createSharedSession"
-      @join="joinSession"
-    />
-
-    <section class="room-grid" aria-label="Escape rooms">
-      <RoomCard
-        v-for="room in rooms"
-        :key="room.id"
-        :room="room"
-        :is-selected="selectedRoom.id === room.id"
-        :is-unlocked="room.unlocked"
-        :is-cleared="clearedRoomIds.includes(room.id)"
-        @start="startRoom"
-      />
+      </aside>
     </section>
   </main>
 
@@ -211,6 +248,19 @@
             />
           </template>
 
+          <template v-else-if="activePuzzle.kind === 'email-investigation'">
+            <EmailInvestigationPuzzleView
+              :puzzle="activePuzzle"
+              :search-query="emailSearchQuery"
+              :selected-email-id="selectedEmailId"
+              :answer="answerInput"
+              :disabled="roomCleared"
+              @update:search-query="handleEmailSearchUpdate"
+              @update:selected-email-id="handleEmailSelectionUpdate"
+              @update:answer="handleEmailAnswerUpdate"
+            />
+          </template>
+
           <template v-else>
             <LogicBoardPuzzleView
               :model-value="logicBoardSelection"
@@ -228,6 +278,9 @@
           <p v-if="showAnswerText && activePuzzle.kind === 'logic-board'" class="answer-text">
             Correct terminal:
             {{ logicBoardAnswerLabel }}
+          </p>
+          <p v-if="showAnswerText && activePuzzle.kind === 'email-investigation'" class="answer-text">
+            Override code: {{ activePuzzle.answer }}
           </p>
           <p v-if="showExplanation" class="explanation-text">
             Explanation: {{ activePuzzle.explanation }}
@@ -329,6 +382,7 @@ import RoomCard from "./components/RoomCard.vue";
 import SessionAccessPanel from "./components/SessionAccessPanel.vue";
 import SessionChatPanel from "./components/SessionChatPanel.vue";
 import SessionLobbyPanel from "./components/SessionLobbyPanel.vue";
+import EmailInvestigationPuzzleView from "./components/puzzles/EmailInvestigationPuzzle.vue";
 import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
 import SudokuPuzzleBoard from "./components/puzzles/SudokuPuzzle.vue";
 import { useGameplay } from "./composables/useGameplay";
@@ -368,6 +422,7 @@ const {
   emitReveal,
   emitSubmitAnswer,
   emitDraftText,
+  emitDraftEmail,
   emitDraftLogic,
   emitDraftSudokuCell,
   emitEditingPresence,
@@ -396,6 +451,8 @@ const {
   loading,
   activePuzzle,
   answerInput,
+  emailSearchQuery,
+  selectedEmailId,
   sudokuGrid,
   logicBoardSelection,
   message,
@@ -426,6 +483,14 @@ const {
 
 const selectedIntensityLabel = computed(() => {
   return intensityOptions.find((option) => option.id === selectedIntensity.value)?.label ?? "Medium";
+});
+
+const progressPercent = computed(() => {
+  return Math.round((clearedRoomsCount.value / rooms.value.length) * 100);
+});
+
+const availableRoomCount = computed(() => {
+  return rooms.value.filter((room) => room.unlocked).length;
 });
 
 const createSharedSession = () => {
@@ -491,6 +556,36 @@ const handleTextDraftInput = (event: Event) => {
   if (session.value) {
     emitDraftText(nextValue);
     emitEditingPresence("answer");
+    return;
+  }
+
+  answerInput.value = nextValue;
+};
+
+const handleEmailSearchUpdate = (nextValue: string) => {
+  if (session.value) {
+    emitDraftEmail({ searchQuery: nextValue });
+    emitEditingPresence("email inbox");
+    return;
+  }
+
+  emailSearchQuery.value = nextValue;
+};
+
+const handleEmailSelectionUpdate = (nextValue: string) => {
+  if (session.value) {
+    emitDraftEmail({ selectedEmailId: nextValue });
+    emitEditingPresence("email inbox");
+    return;
+  }
+
+  selectedEmailId.value = nextValue;
+};
+
+const handleEmailAnswerUpdate = (nextValue: string) => {
+  if (session.value) {
+    emitDraftText(nextValue);
+    emitEditingPresence("override code");
     return;
   }
 
@@ -733,6 +828,24 @@ const checkAnswer = () => {
     }
 
     void handleFailedAttempt("That terminal was not the correct choice.");
+    return;
+  }
+
+  if (activePuzzle.value.kind === "email-investigation") {
+    const userAnswer = answerInput.value.trim().toLowerCase();
+    const correctAnswer = activePuzzle.value.answer.trim().toLowerCase();
+
+    if (!userAnswer) {
+      message.value = "Enter the override code before submitting.";
+      return;
+    }
+
+    if (userAnswer === correctAnswer) {
+      handleSolvedRoom();
+      return;
+    }
+
+    void handleFailedAttempt("That override code is not correct.");
     return;
   }
 

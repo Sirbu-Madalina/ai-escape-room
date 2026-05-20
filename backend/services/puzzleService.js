@@ -1,10 +1,14 @@
-import { createFallbackLogicBoardPuzzle } from "../data/fallbackPuzzles.js";
+import {
+  createFallbackEmailInvestigationPuzzle,
+  createFallbackLogicBoardPuzzle,
+} from "../data/fallbackPuzzles.js";
 import {
   createStructuredSchemaResponse,
   generateStructuredJson,
 } from "./openaiService.js";
 import { createSudokuPuzzle } from "./sudokuService.js";
 import {
+  validateEmailInvestigationPuzzle,
   validateLogicBoardPuzzle,
   validateRiddlePuzzle,
 } from "../utils/validators.js";
@@ -35,6 +39,91 @@ Rules:
 `,
     validate: validateRiddlePuzzle,
   });
+};
+
+export const createEmailInvestigationPuzzle = async ({
+  difficulty = "medium",
+  theme = "suspicious company inbox",
+}) => {
+  try {
+    const parsed = await createStructuredSchemaResponse({
+      instructions: `
+Create one email investigation puzzle for an AI escape room.
+Theme: ${theme}
+Difficulty: ${difficulty}
+
+The player sees a suspicious company inbox with a search bar, opens emails, and discovers an override code.
+The puzzle must be solvable by reading clues in the emails and employee profile.
+Use this core clue pattern:
+- One email hints that the override code is stored where nobody checks twice.
+- Another email hints that Dr. Hayes uses his birthday for everything.
+- The employee profile contains the birthday.
+- The answer should be a short numeric override code derived from the birthday, like MMDD.
+
+Write 4 to 6 emails. Include at least 2 suspicious clue emails and 1 harmless noise email.
+Keep the language concise and readable.
+`,
+      schemaName: "email_investigation_puzzle",
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          riddle: { type: "string" },
+          hint: { type: "string" },
+          explanation: { type: "string" },
+          employeeProfile: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              name: { type: "string" },
+              role: { type: "string" },
+              birthday: { type: "string" },
+              notes: { type: "string" },
+            },
+            required: ["name", "role", "birthday", "notes"],
+          },
+          emails: {
+            type: "array",
+            minItems: 4,
+            maxItems: 6,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: { type: "string" },
+                from: { type: "string" },
+                to: { type: "string" },
+                subject: { type: "string" },
+                preview: { type: "string" },
+                body: { type: "string" },
+                tags: {
+                  type: "array",
+                  minItems: 1,
+                  maxItems: 4,
+                  items: { type: "string" },
+                },
+              },
+              required: ["id", "from", "to", "subject", "preview", "body", "tags"],
+            },
+          },
+          answer: { type: "string" },
+        },
+        required: ["title", "riddle", "hint", "explanation", "employeeProfile", "emails", "answer"],
+      },
+    });
+
+    validateEmailInvestigationPuzzle(parsed);
+
+    return {
+      ...parsed,
+      kind: "email-investigation",
+      inputPlaceholder: "Enter override code",
+    };
+  } catch (error) {
+    console.error("Email investigation generation error:", error);
+    return createFallbackEmailInvestigationPuzzle();
+  }
 };
 
 export const createLogicBoardPuzzle = async ({
@@ -124,6 +213,13 @@ export const createPuzzleForRoom = async (room) => {
 
   if (room.puzzleType === "sudoku") {
     return createSudokuPuzzle();
+  }
+
+  if (room.puzzleType === "email-investigation") {
+    return createEmailInvestigationPuzzle({
+      difficulty: room.difficulty,
+      theme: room.theme,
+    });
   }
 
   if (room.puzzleType === "logic-board") {

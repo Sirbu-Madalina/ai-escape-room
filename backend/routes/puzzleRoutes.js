@@ -1,5 +1,6 @@
 import express from "express";
 import {
+  createEmailInvestigationPuzzle,
   createLogicBoardPuzzle,
   createRiddlePuzzle,
   createPuzzleForRoom,
@@ -30,6 +31,20 @@ router.get("/sudoku", async (req, res) => {
     console.error("Sudoku generation error:", error);
     res.status(500).json({
       error: "Failed to generate sudoku",
+    });
+  }
+});
+
+// /api/email-investigation
+// Calls OpenAI and returns an inbox investigation puzzle for Room 2.
+router.post("/email-investigation", async (req, res) => {
+  try {
+    const { difficulty = "medium", theme = "suspicious company inbox" } = req.body;
+    res.json(await createEmailInvestigationPuzzle({ difficulty, theme }));
+  } catch (error) {
+    console.error("Email investigation generation error:", error);
+    res.status(500).json({
+      error: "Failed to generate email investigation puzzle",
     });
   }
 });

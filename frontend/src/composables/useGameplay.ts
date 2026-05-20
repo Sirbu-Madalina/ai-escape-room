@@ -5,7 +5,7 @@ import {
   intensityOptions,
   type IntensityLevel,
 } from "../data/intensity";
-import type { LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type { EmailInvestigationPuzzle, LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
 import type { Room } from "../data/rooms";
 import { initialRooms } from "../data/rooms";
 import type { GameSession } from "../services/sessionClient";
@@ -14,7 +14,7 @@ type AiPuzzle = TextPuzzle & {
   answer: string;
 };
 
-type Puzzle = AiPuzzle | SudokuPuzzle | LogicBoardPuzzle;
+type Puzzle = AiPuzzle | SudokuPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
 const API_BASE_URL = "http://localhost:5001/api";
@@ -27,6 +27,8 @@ export const useGameplay = () => {
   const loading = ref(false);
   const activePuzzle = ref<Puzzle | null>(null);
   const answerInput = ref("");
+  const emailSearchQuery = ref("");
+  const selectedEmailId = ref("");
   const sudokuGrid = ref<number[][]>([]);
   const logicBoardSelection = ref("");
   const message = ref("");
@@ -90,6 +92,8 @@ export const useGameplay = () => {
   const resetRoomUi = () => {
     activePuzzle.value = null;
     answerInput.value = "";
+    emailSearchQuery.value = "";
+    selectedEmailId.value = "";
     sudokuGrid.value = [];
     logicBoardSelection.value = "";
     message.value = "";
@@ -222,6 +226,25 @@ export const useGameplay = () => {
       });
     }
 
+    if (room.puzzleType === "email-investigation") {
+      return fetch(`${API_BASE_URL}/email-investigation`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          difficulty: room.difficulty,
+          theme: room.theme,
+        }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Email investigation request failed");
+        }
+
+        return response.json() as Promise<EmailInvestigationPuzzle>;
+      });
+    }
+
     throw new Error("Unknown local puzzle type");
   };
 
@@ -236,6 +259,10 @@ export const useGameplay = () => {
 
       if (activePuzzle.value.kind === "sudoku") {
         sudokuGrid.value = activePuzzle.value.givens.map((row) => [...row]);
+      }
+
+      if (activePuzzle.value.kind === "email-investigation") {
+        selectedEmailId.value = activePuzzle.value.emails[0]?.id ?? "";
       }
 
       message.value = statusText ?? `${room.title} is ready. Solve it before the timer ends.`;
@@ -271,10 +298,14 @@ export const useGameplay = () => {
     showExplanation.value = nextSession.gameState.showExplanation;
     message.value = nextSession.gameState.message;
     answerInput.value = nextSession.gameState.textAnswerDraft;
+    emailSearchQuery.value = nextSession.gameState.emailSearchDraft ?? "";
+    selectedEmailId.value = nextSession.gameState.emailSelectedId ?? "";
     logicBoardSelection.value = nextSession.gameState.logicBoardDraft;
 
     if (puzzleChanged) {
       answerInput.value = nextSession.gameState.textAnswerDraft;
+      emailSearchQuery.value = nextSession.gameState.emailSearchDraft ?? "";
+      selectedEmailId.value = nextSession.gameState.emailSelectedId ?? "";
       logicBoardSelection.value = nextSession.gameState.logicBoardDraft;
     }
 
@@ -297,6 +328,8 @@ export const useGameplay = () => {
     loading,
     activePuzzle,
     answerInput,
+    emailSearchQuery,
+    selectedEmailId,
     sudokuGrid,
     logicBoardSelection,
     message,

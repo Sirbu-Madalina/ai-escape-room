@@ -1,10 +1,10 @@
-import type { LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type { EmailInvestigationPuzzle, LogicBoardPuzzle, SudokuPuzzle, TextPuzzle } from "../data/localPuzzles";
 import type { IntensityLevel } from "../data/intensity";
 import type { Room } from "../data/rooms";
 
 const API_BASE_URL = "http://localhost:5001/api";
 
-export type SessionPuzzle = TextPuzzle | SudokuPuzzle | LogicBoardPuzzle;
+export type SessionPuzzle = TextPuzzle | SudokuPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
 
 export type SessionPlayer = {
   id: string;
@@ -30,6 +30,8 @@ export type SessionGameState = {
   activePuzzle: SessionPuzzle | null;
   puzzleInstanceId: number;
   textAnswerDraft: string;
+  emailSearchDraft: string;
+  emailSelectedId: string;
   logicBoardDraft: string;
   sudokuDraft: number[][];
   loading: boolean;
