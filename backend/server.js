@@ -7,9 +7,15 @@ import puzzleRoutes from "./routes/puzzleRoutes.js";
 import sessionRoutes from "./routes/sessionRoutes.js";
 import { registerSessionSocket } from "./socket/sessionSocket.js";
 import {
+  connectToMongo,
+  ensureMongoIndexes,
+  isMongoConfigured,
+} from "./services/mongoService.js";
+import {
   cleanupExpiredSessions,
   decayPresenceState,
   listSessionRecords,
+  persistDirtySessions,
   tickActiveSessions,
 } from "./services/sessionService.js";
 
@@ -48,16 +54,28 @@ setInterval(async () => {
     io.to(session.id).emit("session:state", session);
   }
 
-  const presenceSessions = decayPresenceState();
+  const presenceSessions = await decayPresenceState();
 
   for (const session of presenceSessions) {
     io.to(session.id).emit("session:state", session);
   }
 
-  cleanupExpiredSessions();
+  await persistDirtySessions();
+  await cleanupExpiredSessions();
 }, 1000);
 
-// Starts the HTTP and realtime server.
-server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+const startServer = async () => {
+  if (isMongoConfigured()) {
+    await connectToMongo();
+    await ensureMongoIndexes();
+    console.log("MongoDB connected");
+  } else {
+    console.log("MongoDB not configured; using in-memory sessions only");
+  }
+
+  server.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
+};
+
+void startServer();

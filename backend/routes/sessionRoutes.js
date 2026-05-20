@@ -10,7 +10,7 @@ const router = express.Router();
 
 const normalizePlayerName = (value) => value?.trim().slice(0, 24);
 
-router.post("/sessions", (req, res) => {
+router.post("/sessions", async (req, res) => {
   const playerName = normalizePlayerName(req.body?.playerName);
 
   if (!playerName) {
@@ -20,11 +20,11 @@ router.post("/sessions", (req, res) => {
     return;
   }
 
-  const result = createSession({ playerName });
+  const result = await createSession({ playerName });
   res.status(201).json(result);
 });
 
-router.post("/sessions/join", (req, res) => {
+router.post("/sessions/join", async (req, res) => {
   const playerName = normalizePlayerName(req.body?.playerName);
   const joinCode = req.body?.joinCode?.trim().toUpperCase();
 
@@ -35,7 +35,7 @@ router.post("/sessions/join", (req, res) => {
     return;
   }
 
-  const result = joinSession({ joinCode, playerName });
+  const result = await joinSession({ joinCode, playerName });
 
   if (!result) {
     res.status(404).json({
@@ -47,7 +47,7 @@ router.post("/sessions/join", (req, res) => {
   res.json(result);
 });
 
-router.post("/sessions/restore", (req, res) => {
+router.post("/sessions/restore", async (req, res) => {
   const sessionId = req.body?.sessionId?.trim();
   const recoveryToken = req.body?.recoveryToken?.trim();
 
@@ -58,7 +58,7 @@ router.post("/sessions/restore", (req, res) => {
     return;
   }
 
-  const result = restoreSessionPlayer({
+  const result = await restoreSessionPlayer({
     sessionId,
     recoveryToken,
   });
@@ -73,8 +73,8 @@ router.post("/sessions/restore", (req, res) => {
   res.json(result);
 });
 
-router.get("/sessions/:sessionId", (req, res) => {
-  const session = getSessionById(req.params.sessionId);
+router.get("/sessions/:sessionId", async (req, res) => {
+  const session = await getSessionById(req.params.sessionId);
 
   if (!session) {
     res.status(404).json({

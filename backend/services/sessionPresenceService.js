@@ -1,18 +1,19 @@
 import crypto from "crypto";
 import {
-  deleteSessionRecord,
+  deleteSessionRecordPersistent,
   DISCONNECTED_SESSION_TTL_MS,
   ensureHostExists,
   findPlayerInSession,
-  getSessionRecord,
+  getSessionRecordOrLoad,
   listSessionRecords,
   PRESENCE_STALE_MS,
+  saveSessionRecord,
   sanitizeSession,
   touchSession,
 } from "./sessionStore.js";
 
-export const markPlayerConnection = ({ sessionId, playerId, connected }) => {
-  const session = getSessionRecord(sessionId);
+export const markPlayerConnection = async ({ sessionId, playerId, connected }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return null;
@@ -38,12 +39,13 @@ export const markPlayerConnection = ({ sessionId, playerId, connected }) => {
 
   player.lastSeenAt = new Date().toISOString();
   touchSession(session);
+  await saveSessionRecord(session);
 
   return sanitizeSession(session);
 };
 
-export const leaveSession = ({ sessionId, playerId }) => {
-  const session = getSessionRecord(sessionId);
+export const leaveSession = async ({ sessionId, playerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -58,7 +60,7 @@ export const leaveSession = ({ sessionId, playerId }) => {
   const [removedPlayer] = session.players.splice(playerIndex, 1);
 
   if (session.players.length === 0) {
-    deleteSessionRecord(sessionId);
+    await deleteSessionRecordPersistent(sessionId);
     return {
       removedSession: true,
       removedPlayerId: removedPlayer.id,
@@ -67,6 +69,7 @@ export const leaveSession = ({ sessionId, playerId }) => {
 
   ensureHostExists(session);
   touchSession(session);
+  await saveSessionRecord(session);
 
   return {
     removedPlayerId: removedPlayer.id,
@@ -74,8 +77,8 @@ export const leaveSession = ({ sessionId, playerId }) => {
   };
 };
 
-export const addChatMessage = ({ sessionId, playerId, text }) => {
-  const session = getSessionRecord(sessionId);
+export const addChatMessage = async ({ sessionId, playerId, text }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return null;
@@ -104,6 +107,7 @@ export const addChatMessage = ({ sessionId, playerId, text }) => {
   }
 
   touchSession(session);
+  await saveSessionRecord(session);
 
   return {
     message,
@@ -111,13 +115,13 @@ export const addChatMessage = ({ sessionId, playerId, text }) => {
   };
 };
 
-export const updatePlayerPresence = ({
+export const updatePlayerPresence = async ({
   sessionId,
   playerId,
   isTypingChat,
   editingTarget,
 }) => {
-  const session = getSessionRecord(sessionId);
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return null;
@@ -139,11 +143,12 @@ export const updatePlayerPresence = ({
 
   player.lastSeenAt = new Date().toISOString();
   touchSession(session);
+  await saveSessionRecord(session);
 
   return sanitizeSession(session);
 };
 
-export const cleanupExpiredSessions = () => {
+export const cleanupExpiredSessions = async () => {
   const now = Date.now();
   let removed = 0;
 
@@ -153,7 +158,7 @@ export const cleanupExpiredSessions = () => {
     const expiresAt = new Date(session.expiresAt).getTime();
 
     if (expiresAt <= now || (allDisconnected && now - updatedAt > DISCONNECTED_SESSION_TTL_MS)) {
-      deleteSessionRecord(session.id);
+      await deleteSessionRecordPersistent(session.id);
       removed += 1;
     }
   }
@@ -161,7 +166,7 @@ export const cleanupExpiredSessions = () => {
   return removed;
 };
 
-export const decayPresenceState = () => {
+export const decayPresenceState = async () => {
   const changedSessions = [];
   const cutoff = Date.now() - PRESENCE_STALE_MS;
 
@@ -184,6 +189,7 @@ export const decayPresenceState = () => {
 
     if (changed) {
       touchSession(session);
+      await saveSessionRecord(session);
       changedSessions.push(sanitizeSession(session));
     }
   }

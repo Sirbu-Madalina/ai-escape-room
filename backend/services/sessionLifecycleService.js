@@ -3,14 +3,16 @@ import {
   createPlayerSessionPayload,
   createSessionRecord,
   findPlayerByRecoveryToken,
-  findSessionByJoinCode,
-  getSessionRecord,
+  findSessionByJoinCodeOrLoad,
+  getSessionRecordOrLoad,
+  saveSessionRecord,
   sanitizeSession,
   touchSession,
 } from "./sessionStore.js";
 
-export const createSession = ({ playerName }) => {
+export const createSession = async ({ playerName }) => {
   const result = createSessionRecord({ playerName });
+  await saveSessionRecord(result.session);
 
   return {
     session: sanitizeSession(result.session),
@@ -18,14 +20,15 @@ export const createSession = ({ playerName }) => {
   };
 };
 
-export const joinSession = ({ joinCode, playerName }) => {
-  const session = findSessionByJoinCode(joinCode);
+export const joinSession = async ({ joinCode, playerName }) => {
+  const session = await findSessionByJoinCodeOrLoad(joinCode);
 
   if (!session) {
     return null;
   }
 
   const player = addPlayerToSession(session, playerName);
+  await saveSessionRecord(session);
 
   return {
     session: sanitizeSession(session),
@@ -33,8 +36,8 @@ export const joinSession = ({ joinCode, playerName }) => {
   };
 };
 
-export const restoreSessionPlayer = ({ sessionId, recoveryToken }) => {
-  const session = getSessionRecord(sessionId);
+export const restoreSessionPlayer = async ({ sessionId, recoveryToken }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return null;
@@ -47,6 +50,7 @@ export const restoreSessionPlayer = ({ sessionId, recoveryToken }) => {
   }
 
   touchSession(session);
+  await saveSessionRecord(session);
 
   return {
     session: sanitizeSession(session),
@@ -54,7 +58,7 @@ export const restoreSessionPlayer = ({ sessionId, recoveryToken }) => {
   };
 };
 
-export const getSessionById = (sessionId) => {
-  const session = getSessionRecord(sessionId);
+export const getSessionById = async (sessionId) => {
+  const session = await getSessionRecordOrLoad(sessionId);
   return session ? sanitizeSession(session) : null;
 };
