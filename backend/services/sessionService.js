@@ -28,4 +28,4 @@ export {
   updatePlayerPresence,
 } from "./sessionPresenceService.js";
 
-export { listSessionRecords } from "./sessionStore.js";
+export { listSessionRecords, persistDirtySessions } from "./sessionStore.js";

@@ -1,8 +1,9 @@
 import { cloneRooms, createInitialGameState } from "./sessionStore.js";
 import { createPuzzleForRoom } from "./puzzleService.js";
 import {
-  getSessionRecord,
+  getSessionRecordOrLoad,
   sanitizeSession,
+  saveSessionRecord,
   touchSession,
 } from "./sessionStore.js";
 
@@ -117,7 +118,7 @@ const handleSolvedRoom = (session) => {
 };
 
 export const startRoomSession = async ({ sessionId, roomId, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -142,6 +143,7 @@ export const startRoomSession = async ({ sessionId, roomId, actorPlayerId }) => 
 
   try {
     await loadPuzzleForSelectedRoom(session);
+    await saveSessionRecord(session);
     return { session: sanitizeSession(session) };
   } catch (error) {
     console.error("Shared room start error:", error);
@@ -149,6 +151,7 @@ export const startRoomSession = async ({ sessionId, roomId, actorPlayerId }) => 
     session.gameState.activePuzzle = null;
     session.gameState.message = "Failed to load the shared puzzle.";
     touchSession(session);
+    await saveSessionRecord(session);
     return {
       error: "Failed to load the shared puzzle.",
       session: sanitizeSession(session),
@@ -157,7 +160,7 @@ export const startRoomSession = async ({ sessionId, roomId, actorPlayerId }) => 
 };
 
 export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
-  const session = getSessionRecord(sessionId);
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -184,10 +187,12 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
 
     if (isCorrect) {
       handleSolvedRoom(session);
+      await saveSessionRecord(session);
       return { session: sanitizeSession(session) };
     }
 
     await handleFailedAttempt(session, "That Sudoku grid is not correct.");
+    await saveSessionRecord(session);
     return { session: sanitizeSession(session) };
   }
 
@@ -200,10 +205,12 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
 
     if (selectedOption === puzzle.answer) {
       handleSolvedRoom(session);
+      await saveSessionRecord(session);
       return { session: sanitizeSession(session) };
     }
 
     await handleFailedAttempt(session, "That terminal was not the correct choice.");
+    await saveSessionRecord(session);
     return { session: sanitizeSession(session) };
   }
 
@@ -216,15 +223,17 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
 
   if (userAnswer === correctAnswer) {
     handleSolvedRoom(session);
+    await saveSessionRecord(session);
     return { session: sanitizeSession(session) };
   }
 
   await handleFailedAttempt(session, "Wrong answer.");
+  await saveSessionRecord(session);
   return { session: sanitizeSession(session) };
 };
 
-export const useHintSession = ({ sessionId }) => {
-  const session = getSessionRecord(sessionId);
+export const useHintSession = async ({ sessionId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -237,12 +246,13 @@ export const useHintSession = ({ sessionId }) => {
   session.gameState.hintUsed = true;
   session.gameState.showHint = true;
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const revealAnswerSession = ({ sessionId }) => {
-  const session = getSessionRecord(sessionId);
+export const revealAnswerSession = async ({ sessionId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -265,12 +275,13 @@ export const revealAnswerSession = ({ sessionId }) => {
 
   session.gameState.message = `You used Get answer and lost 1 life. ${session.gameState.lives} left.`;
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const updateTextDraftSession = ({ sessionId, text, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const updateTextDraftSession = async ({ sessionId, text, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -287,12 +298,13 @@ export const updateTextDraftSession = ({ sessionId, text, actorPlayerId }) => {
     player.lastSeenAt = new Date().toISOString();
   }
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const updateLogicBoardDraftSession = ({ sessionId, selection, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const updateLogicBoardDraftSession = async ({ sessionId, selection, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -318,12 +330,13 @@ export const updateLogicBoardDraftSession = ({ sessionId, selection, actorPlayer
     player.lastSeenAt = new Date().toISOString();
   }
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const updateSudokuDraftCellSession = ({ sessionId, rowIndex, columnIndex, value, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const updateSudokuDraftCellSession = async ({ sessionId, rowIndex, columnIndex, value, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -365,12 +378,13 @@ export const updateSudokuDraftCellSession = ({ sessionId, rowIndex, columnIndex,
     player.lastSeenAt = new Date().toISOString();
   }
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const endSessionRun = ({ sessionId, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const endSessionRun = async ({ sessionId, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -385,12 +399,13 @@ export const endSessionRun = ({ sessionId, actorPlayerId }) => {
   resetTransientRoomState(session);
   session.gameState.message = "The team gave up on this run.";
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const restartSessionRun = ({ sessionId, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const restartSessionRun = async ({ sessionId, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -430,12 +445,13 @@ export const restartSessionRun = ({ sessionId, actorPlayerId }) => {
     },
   };
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };
 
-export const returnSessionToLobby = ({ sessionId, actorPlayerId }) => {
-  const session = getSessionRecord(sessionId);
+export const returnSessionToLobby = async ({ sessionId, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
     return { error: "Session not found." };
@@ -452,6 +468,7 @@ export const returnSessionToLobby = ({ sessionId, actorPlayerId }) => {
   session.gameState.secondsLeft = selectedRoom?.timeLimitSeconds ?? createInitialGameState(session.gameState.intensity).secondsLeft;
   session.gameState.message = "The team returned to the lobby.";
   touchSession(session);
+  await saveSessionRecord(session);
 
   return { session: sanitizeSession(session) };
 };

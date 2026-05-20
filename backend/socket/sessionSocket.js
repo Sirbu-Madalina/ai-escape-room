@@ -20,8 +20,8 @@ const MAX_CHAT_LENGTH = 240;
 
 export const registerSessionSocket = (io) => {
   io.on("connection", (socket) => {
-    socket.on("session:join", ({ sessionId, playerId }) => {
-      const session = markPlayerConnection({
+    socket.on("session:join", async ({ sessionId, playerId }) => {
+      const session = await markPlayerConnection({
         sessionId,
         playerId,
         connected: true,
@@ -41,7 +41,7 @@ export const registerSessionSocket = (io) => {
       io.to(sessionId).emit("session:state", session);
     });
 
-    socket.on("chat:send", ({ text }) => {
+    socket.on("chat:send", async ({ text }) => {
       const sessionId = socket.data.sessionId;
       const playerId = socket.data.playerId;
       const normalizedText = text?.trim().slice(0, MAX_CHAT_LENGTH);
@@ -50,7 +50,7 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const result = addChatMessage({
+      const result = await addChatMessage({
         sessionId,
         playerId,
         text: normalizedText,
@@ -67,7 +67,7 @@ export const registerSessionSocket = (io) => {
       io.to(sessionId).emit("session:state", result.session);
     });
 
-    socket.on("session:leave", () => {
+    socket.on("session:leave", async () => {
       const sessionId = socket.data.sessionId;
       const playerId = socket.data.playerId;
 
@@ -75,7 +75,7 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const result = leaveSession({ sessionId, playerId });
+      const result = await leaveSession({ sessionId, playerId });
 
       if (result?.error) {
         socket.emit("session:error", {
@@ -94,8 +94,8 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("session:refresh", ({ sessionId }) => {
-      const session = getSessionById(sessionId);
+    socket.on("session:refresh", async ({ sessionId }) => {
+      const session = await getSessionById(sessionId);
 
       if (session) {
         socket.emit("session:state", session);
@@ -160,14 +160,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("draft:text", ({ text }) => {
+    socket.on("draft:text", async ({ text }) => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = updateTextDraftSession({
+      const result = await updateTextDraftSession({
         sessionId,
         text,
         actorPlayerId: socket.data.playerId,
@@ -178,14 +178,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("draft:logic-board", ({ selection }) => {
+    socket.on("draft:logic-board", async ({ selection }) => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = updateLogicBoardDraftSession({
+      const result = await updateLogicBoardDraftSession({
         sessionId,
         selection,
         actorPlayerId: socket.data.playerId,
@@ -196,14 +196,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("draft:sudoku-cell", ({ rowIndex, columnIndex, value }) => {
+    socket.on("draft:sudoku-cell", async ({ rowIndex, columnIndex, value }) => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = updateSudokuDraftCellSession({
+      const result = await updateSudokuDraftCellSession({
         sessionId,
         rowIndex,
         columnIndex,
@@ -216,14 +216,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("hint:use", () => {
+    socket.on("hint:use", async () => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = useHintSession({ sessionId });
+      const result = await useHintSession({ sessionId });
 
       if (result.session) {
         io.to(sessionId).emit("session:state", result.session);
@@ -236,7 +236,7 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("presence:chat-typing", ({ isTyping }) => {
+    socket.on("presence:chat-typing", async ({ isTyping }) => {
       const sessionId = socket.data.sessionId;
       const playerId = socket.data.playerId;
 
@@ -244,7 +244,7 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const session = updatePlayerPresence({
+      const session = await updatePlayerPresence({
         sessionId,
         playerId,
         isTypingChat: Boolean(isTyping),
@@ -255,7 +255,7 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("presence:editing", ({ editingTarget }) => {
+    socket.on("presence:editing", async ({ editingTarget }) => {
       const sessionId = socket.data.sessionId;
       const playerId = socket.data.playerId;
 
@@ -263,7 +263,7 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const session = updatePlayerPresence({
+      const session = await updatePlayerPresence({
         sessionId,
         playerId,
         editingTarget: typeof editingTarget === "string" ? editingTarget : "",
@@ -274,14 +274,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("answer:reveal", () => {
+    socket.on("answer:reveal", async () => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = revealAnswerSession({ sessionId });
+      const result = await revealAnswerSession({ sessionId });
 
       if (result.session) {
         io.to(sessionId).emit("session:state", result.session);
@@ -294,14 +294,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("session:give-up", () => {
+    socket.on("session:give-up", async () => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = endSessionRun({
+      const result = await endSessionRun({
         sessionId,
         actorPlayerId: socket.data.playerId,
       });
@@ -317,14 +317,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("session:restart", () => {
+    socket.on("session:restart", async () => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = restartSessionRun({
+      const result = await restartSessionRun({
         sessionId,
         actorPlayerId: socket.data.playerId,
       });
@@ -334,14 +334,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("room:exit", () => {
+    socket.on("room:exit", async () => {
       const sessionId = socket.data.sessionId;
 
       if (!sessionId) {
         return;
       }
 
-      const result = returnSessionToLobby({
+      const result = await returnSessionToLobby({
         sessionId,
         actorPlayerId: socket.data.playerId,
       });
@@ -357,14 +357,14 @@ export const registerSessionSocket = (io) => {
       }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       const { sessionId, playerId } = socket.data;
 
       if (!sessionId || !playerId) {
         return;
       }
 
-      const session = markPlayerConnection({
+      const session = await markPlayerConnection({
         sessionId,
         playerId,
         connected: false,

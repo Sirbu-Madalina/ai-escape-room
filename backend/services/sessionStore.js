@@ -1,12 +1,14 @@
 import crypto from "crypto";
 import { getIntensityOption, normalizeIntensity } from "../data/intensity.js";
 import { initialRooms } from "../data/initialRooms.js";
+import { getSessionsCollection, isMongoConfigured } from "./mongoService.js";
 
 export const SESSION_TTL_MS = 1000 * 60 * 60 * 6;
 export const DISCONNECTED_SESSION_TTL_MS = 1000 * 60 * 30;
 export const PRESENCE_STALE_MS = 1000 * 8;
 
 const sessions = new Map();
+const dirtySessionIds = new Set();
 
 export const cloneRooms = (intensity = "medium") => {
   const option = getIntensityOption(intensity);
@@ -126,6 +128,7 @@ export const createSessionRecord = ({ playerName, intensity }) => {
   };
 
   sessions.set(session.id, session);
+  dirtySessionIds.add(session.id);
 
   return {
     session,
@@ -137,6 +140,7 @@ export const touchSession = (session) => {
   const now = new Date();
   session.updatedAt = now.toISOString();
   session.expiresAt = new Date(now.getTime() + SESSION_TTL_MS).toISOString();
+  dirtySessionIds.add(session.id);
   return session;
 };
 
@@ -158,6 +162,7 @@ export const listSessionRecords = () => [...sessions.values()];
 
 export const deleteSessionRecord = (sessionId) => {
   sessions.delete(sessionId);
+  dirtySessionIds.delete(sessionId);
 };
 
 export const findSessionByJoinCode = (joinCode) => {
@@ -202,4 +207,174 @@ export const ensureHostExists = (session) => {
   });
 
   return nextHost;
+};
+
+const serializeSessionRecord = (session) => ({
+  _id: session.id,
+  id: session.id,
+  joinCode: session.joinCode,
+  createdAt: session.createdAt,
+  updatedAt: session.updatedAt,
+  expiresAt: session.expiresAt,
+  hostPlayerId: session.hostPlayerId,
+  players: session.players,
+  chatMessages: session.chatMessages,
+  gameState: session.gameState,
+});
+
+const hydrateSessionRecord = (sessionDocument) => {
+  if (!sessionDocument) {
+    return null;
+  }
+
+  const session = {
+    id: sessionDocument.id ?? sessionDocument._id,
+    joinCode: sessionDocument.joinCode,
+    createdAt: sessionDocument.createdAt,
+    updatedAt: sessionDocument.updatedAt,
+    expiresAt: sessionDocument.expiresAt,
+    hostPlayerId: sessionDocument.hostPlayerId,
+    players: sessionDocument.players ?? [],
+    chatMessages: sessionDocument.chatMessages ?? [],
+    gameState: sessionDocument.gameState ?? createInitialGameState(),
+  };
+
+  sessions.set(session.id, session);
+  dirtySessionIds.delete(session.id);
+  return session;
+};
+
+export const getSessionRecordOrLoad = async (sessionId) => {
+  const inMemorySession = sessions.get(sessionId);
+
+  if (inMemorySession) {
+    if (new Date(inMemorySession.expiresAt).getTime() <= Date.now()) {
+      await deleteSessionRecordPersistent(sessionId);
+      return null;
+    }
+
+    return inMemorySession;
+  }
+
+  if (!isMongoConfigured()) {
+    return null;
+  }
+
+  const collection = await getSessionsCollection();
+
+  if (!collection) {
+    return null;
+  }
+
+  const sessionDocument = await collection.findOne({ _id: sessionId });
+  const hydratedSession = hydrateSessionRecord(sessionDocument);
+
+  if (hydratedSession && new Date(hydratedSession.expiresAt).getTime() <= Date.now()) {
+    await deleteSessionRecordPersistent(hydratedSession.id);
+    return null;
+  }
+
+  return hydratedSession;
+};
+
+export const findSessionByJoinCodeOrLoad = async (joinCode) => {
+  const inMemorySession = findSessionByJoinCode(joinCode);
+
+  if (inMemorySession) {
+    if (new Date(inMemorySession.expiresAt).getTime() <= Date.now()) {
+      await deleteSessionRecordPersistent(inMemorySession.id);
+      return null;
+    }
+
+    return inMemorySession;
+  }
+
+  if (!isMongoConfigured()) {
+    return null;
+  }
+
+  const collection = await getSessionsCollection();
+
+  if (!collection) {
+    return null;
+  }
+
+  const sessionDocument = await collection.findOne({ joinCode });
+  const hydratedSession = hydrateSessionRecord(sessionDocument);
+
+  if (hydratedSession && new Date(hydratedSession.expiresAt).getTime() <= Date.now()) {
+    await deleteSessionRecordPersistent(hydratedSession.id);
+    return null;
+  }
+
+  return hydratedSession;
+};
+
+export const saveSessionRecord = async (session) => {
+  if (!isMongoConfigured()) {
+    return;
+  }
+
+  const collection = await getSessionsCollection();
+
+  if (!collection) {
+    return;
+  }
+
+  await collection.replaceOne(
+    { _id: session.id },
+    serializeSessionRecord(session),
+    { upsert: true },
+  );
+
+  dirtySessionIds.delete(session.id);
+};
+
+export const deleteSessionRecordPersistent = async (sessionId) => {
+  deleteSessionRecord(sessionId);
+
+  if (!isMongoConfigured()) {
+    return;
+  }
+
+  const collection = await getSessionsCollection();
+
+  if (!collection) {
+    return;
+  }
+
+  await collection.deleteOne({ _id: sessionId });
+};
+
+export const persistDirtySessions = async () => {
+  if (!isMongoConfigured() || dirtySessionIds.size === 0) {
+    return 0;
+  }
+
+  const collection = await getSessionsCollection();
+
+  if (!collection) {
+    return 0;
+  }
+
+  const sessionIds = [...dirtySessionIds];
+
+  for (const sessionId of sessionIds) {
+    const session = sessions.get(sessionId);
+
+    if (!session) {
+      dirtySessionIds.delete(sessionId);
+      continue;
+    }
+
+    await collection.replaceOne(
+      { _id: session.id },
+      serializeSessionRecord(session),
+      { upsert: true },
+    );
+
+    dirtySessionIds.delete(sessionId);
+  }
+
+  return sessionIds.length;
 };
