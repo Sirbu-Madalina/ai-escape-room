@@ -1,4 +1,4 @@
-export type PuzzleType = "ai-riddle" | "email-investigation" | "logic-board";
+export type PuzzleType = "ai-riddle" | "crossword" | "email-investigation" | "logic-board" | "corrupted-documents";
 export type RoomDifficulty = "easy" | "medium" | "hard";
 
 export type Room = {
@@ -22,7 +22,7 @@ export const initialRooms: Room[] = [
     difficulty: "easy",
     themeClass: "cyan",
     unlocked: true,
-    puzzleType: "ai-riddle",
+    puzzleType: "crossword",
     timeLimitSeconds: 120,
   },
   {
@@ -39,12 +39,12 @@ export const initialRooms: Room[] = [
   {
     id: 3,
     title: "Room 3",
-    subtitle: "AI Escape Room - Neon Grid",
-    theme: "neon grid",
+    subtitle: "AI Escape Room - Corrupted Documents",
+    theme: "corrupted document archive",
     difficulty: "hard",
     themeClass: "pink",
     unlocked: false,
-    puzzleType: "logic-board",
+    puzzleType: "corrupted-documents",
     timeLimitSeconds: 180,
   },
 ];

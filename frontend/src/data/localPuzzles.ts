@@ -14,6 +14,28 @@ export type LogicBoardOption = {
   description: string;
 };
 
+export type CrosswordEntry = {
+  id: string;
+  number: number;
+  direction: "across" | "down";
+  clue: string;
+  answer: string;
+  row: number;
+  col: number;
+  prefilledIndexes: number[];
+};
+
+export type CrosswordPuzzle = {
+  title: string;
+  riddle: string;
+  hint: string;
+  explanation: string;
+  kind: "crossword";
+  entries: CrosswordEntry[];
+  answer: string;
+  inputPlaceholder: string;
+};
+
 export type LogicBoardPuzzle = {
   title: string;
   riddle: string;
@@ -23,6 +45,26 @@ export type LogicBoardPuzzle = {
   statements: string[];
   options: LogicBoardOption[];
   answer: string;
+};
+
+export type CorruptedDocument = {
+  id: string;
+  title: string;
+  classification: string;
+  corruptedText: string;
+  hiddenClue: string;
+  clueLabel: string;
+};
+
+export type CorruptedDocumentsPuzzle = {
+  title: string;
+  riddle: string;
+  hint: string;
+  explanation: string;
+  kind: "corrupted-documents";
+  documents: CorruptedDocument[];
+  answer: string;
+  inputPlaceholder: string;
 };
 
 export type ResearchEmail = {

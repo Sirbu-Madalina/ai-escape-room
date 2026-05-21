@@ -1,4 +1,6 @@
 import {
+  createFallbackCorruptedDocumentsPuzzle,
+  createFallbackCrosswordPuzzle,
   createFallbackEmailInvestigationPuzzle,
   createFallbackLogicBoardPuzzle,
 } from "../data/fallbackPuzzles.js";
@@ -7,6 +9,7 @@ import {
   generateStructuredJson,
 } from "./openaiService.js";
 import {
+  validateCorruptedDocumentsPuzzle,
   validateEmailInvestigationPuzzle,
   validateLogicBoardPuzzle,
   validateRiddlePuzzle,
@@ -38,6 +41,17 @@ Rules:
 `,
     validate: validateRiddlePuzzle,
   });
+};
+
+export const createCrosswordPuzzle = async ({
+  difficulty = "easy",
+  theme = "cyber lab",
+}) => {
+  // Curated random puzzles are clearer and more varied than AI-generated
+  // crossword grids, while still being beginner-friendly to maintain.
+  void difficulty;
+  void theme;
+  return createFallbackCrosswordPuzzle();
 };
 
 export const createEmailInvestigationPuzzle = async ({
@@ -233,6 +247,77 @@ Make the statements feel like clear clues in a game.
   }
 };
 
+export const createCorruptedDocumentsPuzzle = async ({
+  difficulty = "hard",
+  theme = "corrupted document archive",
+}) => {
+  try {
+    const parsed = await createStructuredSchemaResponse({
+      instructions: `
+Create one corrupted-documents puzzle for an AI escape room.
+Theme: ${theme}
+Difficulty: ${difficulty}
+
+The player opens three damaged documents. Each document contains missing letters, glitch symbols, and one hidden clue fragment.
+The final answer must require combining the three fragments in document order.
+Keep corrupted text readable enough to solve, but visually glitchy.
+Use uppercase fragments in the documents, but the answer should be lowercase.
+
+Make this fun and clear, not frustrating:
+- Each hiddenClue must be a full word, never a single letter.
+- Each hiddenClue must be 3 to 10 letters.
+- The final answer must be exactly the three hiddenClue words in document order, separated by spaces.
+- The corruptedText must include enough readable context for the player to understand why that word matters.
+- Include one friendly line in each corruptedText like "Readable fragment:" or "Recovered word:" before the clue.
+- Avoid vague fragments such as "A", "T", "e", initials, or random letters.
+- Avoid requiring outside knowledge.
+`,
+      schemaName: "corrupted_documents_puzzle",
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          riddle: { type: "string" },
+          hint: { type: "string" },
+          explanation: { type: "string" },
+          documents: {
+            type: "array",
+            minItems: 3,
+            maxItems: 3,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                id: { type: "string" },
+                title: { type: "string" },
+                classification: { type: "string" },
+                corruptedText: { type: "string", minLength: 80 },
+                hiddenClue: { type: "string", minLength: 3, maxLength: 10 },
+                clueLabel: { type: "string" },
+              },
+              required: ["id", "title", "classification", "corruptedText", "hiddenClue", "clueLabel"],
+            },
+          },
+          answer: { type: "string" },
+        },
+        required: ["title", "riddle", "hint", "explanation", "documents", "answer"],
+      },
+    });
+
+    validateCorruptedDocumentsPuzzle(parsed);
+
+    return {
+      ...parsed,
+      kind: "corrupted-documents",
+      inputPlaceholder: "Enter recovered phrase",
+    };
+  } catch (error) {
+    console.error("Corrupted documents generation error:", error);
+    return createFallbackCorruptedDocumentsPuzzle();
+  }
+};
+
 export const createPuzzleForRoom = async (room) => {
   if (room.puzzleType === "ai-riddle") {
     const puzzle = await createRiddlePuzzle({
@@ -247,6 +332,13 @@ export const createPuzzleForRoom = async (room) => {
     };
   }
 
+  if (room.puzzleType === "crossword") {
+    return createCrosswordPuzzle({
+      difficulty: room.difficulty,
+      theme: room.theme,
+    });
+  }
+
   if (room.puzzleType === "email-investigation") {
     return createEmailInvestigationPuzzle({
       difficulty: room.difficulty,
@@ -256,6 +348,13 @@ export const createPuzzleForRoom = async (room) => {
 
   if (room.puzzleType === "logic-board") {
     return createLogicBoardPuzzle({
+      difficulty: room.difficulty,
+      theme: room.theme,
+    });
+  }
+
+  if (room.puzzleType === "corrupted-documents") {
+    return createCorruptedDocumentsPuzzle({
       difficulty: room.difficulty,
       theme: room.theme,
     });

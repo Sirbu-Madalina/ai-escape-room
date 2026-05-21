@@ -1,10 +1,16 @@
-import type { EmailInvestigationPuzzle, LogicBoardPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type {
+  CorruptedDocumentsPuzzle,
+  CrosswordPuzzle,
+  EmailInvestigationPuzzle,
+  LogicBoardPuzzle,
+  TextPuzzle,
+} from "../data/localPuzzles";
 import type { IntensityLevel } from "../data/intensity";
 import type { Room } from "../data/rooms";
 
 const API_BASE_URL = "http://localhost:5001/api";
 
-export type SessionPuzzle = TextPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
+export type SessionPuzzle = TextPuzzle | CrosswordPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle | CorruptedDocumentsPuzzle;
 
 export type SessionPlayer = {
   id: string;
@@ -33,6 +39,7 @@ export type SessionGameState = {
   emailSearchDraft: string;
   emailSelectedId: string;
   logicBoardDraft: string;
+  crosswordDraft: Record<string, string>;
   loading: boolean;
   hintUsed: boolean;
   answerUsed: boolean;

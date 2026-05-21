@@ -8,6 +8,7 @@ import {
   restartSessionRun,
   startRoomSession,
   submitAnswerSession,
+  updateCrosswordDraftSession,
   updateEmailInvestigationDraftSession,
   updateLogicBoardDraftSession,
   updatePlayerPresence,
@@ -188,6 +189,24 @@ export const registerSessionSocket = (io) => {
       const result = await updateLogicBoardDraftSession({
         sessionId,
         selection,
+        actorPlayerId: socket.data.playerId,
+      });
+
+      if (result.session) {
+        io.to(sessionId).emit("session:state", result.session);
+      }
+    });
+
+    socket.on("draft:crossword", async ({ draft }) => {
+      const sessionId = socket.data.sessionId;
+
+      if (!sessionId) {
+        return;
+      }
+
+      const result = await updateCrosswordDraftSession({
+        sessionId,
+        draft,
         actorPlayerId: socket.data.playerId,
       });
 

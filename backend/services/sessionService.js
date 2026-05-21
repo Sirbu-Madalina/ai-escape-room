@@ -14,6 +14,7 @@ export {
   submitAnswerSession,
   tickActiveSessions,
   updateEmailInvestigationDraftSession,
+  updateCrosswordDraftSession,
   updateLogicBoardDraftSession,
   updateTextDraftSession,
   useHintSession,

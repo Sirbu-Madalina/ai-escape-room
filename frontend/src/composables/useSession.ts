@@ -280,12 +280,17 @@ export const useSession = ({
     emitGiveUp: () => sessionSocket?.emit("session:give-up"),
     emitHint: () => sessionSocket?.emit("hint:use"),
     emitReveal: () => sessionSocket?.emit("answer:reveal"),
-    emitSubmitAnswer: (payload: { textAnswer: string; logicBoardSelection: string }) =>
+    emitSubmitAnswer: (payload: {
+      crosswordDraft?: Record<string, string>;
+      textAnswer: string;
+      logicBoardSelection: string;
+    }) =>
       sessionSocket?.emit("answer:submit", payload),
     emitDraftText: (text: string) => sessionSocket?.emit("draft:text", { text }),
     emitDraftEmail: (payload: { searchQuery?: string; selectedEmailId?: string }) =>
       sessionSocket?.emit("draft:email-investigation", payload),
     emitDraftLogic: (selection: string) => sessionSocket?.emit("draft:logic-board", { selection }),
+    emitDraftCrossword: (draft: Record<string, string>) => sessionSocket?.emit("draft:crossword", { draft }),
     emitEditingPresence: (editingTarget: string) => sessionSocket?.emit("presence:editing", { editingTarget }),
     leaveSession: () => sessionSocket?.emit("session:leave"),
   };

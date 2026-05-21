@@ -5,7 +5,13 @@ import {
   intensityOptions,
   type IntensityLevel,
 } from "../data/intensity";
-import type { EmailInvestigationPuzzle, LogicBoardPuzzle, TextPuzzle } from "../data/localPuzzles";
+import type {
+  CorruptedDocumentsPuzzle,
+  CrosswordPuzzle,
+  EmailInvestigationPuzzle,
+  LogicBoardPuzzle,
+  TextPuzzle,
+} from "../data/localPuzzles";
 import type { Room } from "../data/rooms";
 import { initialRooms } from "../data/rooms";
 import type { GameSession } from "../services/sessionClient";
@@ -14,7 +20,7 @@ type AiPuzzle = TextPuzzle & {
   answer: string;
 };
 
-type Puzzle = AiPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle;
+type Puzzle = AiPuzzle | CrosswordPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle | CorruptedDocumentsPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
 const API_BASE_URL = "http://localhost:5001/api";
@@ -30,6 +36,7 @@ export const useGameplay = () => {
   const emailSearchQuery = ref("");
   const selectedEmailId = ref("");
   const logicBoardSelection = ref("");
+  const crosswordDraft = ref<Record<string, string>>({});
   const message = ref("");
   const showHint = ref(false);
   const hintUsed = ref(false);
@@ -93,6 +100,7 @@ export const useGameplay = () => {
     emailSearchQuery.value = "";
     selectedEmailId.value = "";
     logicBoardSelection.value = "";
+    crosswordDraft.value = {};
     message.value = "";
     showExplanation.value = false;
     roomCleared.value = false;
@@ -192,6 +200,25 @@ export const useGameplay = () => {
   };
 
   const buildLocalPuzzle = (room: Room) => {
+    if (room.puzzleType === "crossword") {
+      return fetch(`${API_BASE_URL}/crossword`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          difficulty: room.difficulty,
+          theme: room.theme,
+        }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Crossword request failed");
+        }
+
+        return response.json() as Promise<CrosswordPuzzle>;
+      });
+    }
+
     if (room.puzzleType === "logic-board") {
       return fetch(`${API_BASE_URL}/logic-board`, {
         method: "POST",
@@ -227,6 +254,25 @@ export const useGameplay = () => {
         }
 
         return response.json() as Promise<EmailInvestigationPuzzle>;
+      });
+    }
+
+    if (room.puzzleType === "corrupted-documents") {
+      return fetch(`${API_BASE_URL}/corrupted-documents`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          difficulty: room.difficulty,
+          theme: room.theme,
+        }),
+      }).then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Corrupted documents request failed");
+        }
+
+        return response.json() as Promise<CorruptedDocumentsPuzzle>;
       });
     }
 
@@ -281,12 +327,14 @@ export const useGameplay = () => {
     emailSearchQuery.value = nextSession.gameState.emailSearchDraft ?? "";
     selectedEmailId.value = nextSession.gameState.emailSelectedId ?? "";
     logicBoardSelection.value = nextSession.gameState.logicBoardDraft;
+    crosswordDraft.value = nextSession.gameState.crosswordDraft ?? {};
 
     if (puzzleChanged) {
       answerInput.value = nextSession.gameState.textAnswerDraft;
       emailSearchQuery.value = nextSession.gameState.emailSearchDraft ?? "";
       selectedEmailId.value = nextSession.gameState.emailSelectedId ?? "";
       logicBoardSelection.value = nextSession.gameState.logicBoardDraft;
+      crosswordDraft.value = nextSession.gameState.crosswordDraft ?? {};
     }
 
     stopTimer();
@@ -305,6 +353,7 @@ export const useGameplay = () => {
     emailSearchQuery,
     selectedEmailId,
     logicBoardSelection,
+    crosswordDraft,
     message,
     showHint,
     hintUsed,

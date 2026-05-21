@@ -28,6 +28,7 @@ const resetTransientRoomState = (session) => {
   session.gameState.emailSearchDraft = "";
   session.gameState.emailSelectedId = "";
   session.gameState.logicBoardDraft = "";
+  session.gameState.crosswordDraft = {};
   session.gameState.loading = false;
   session.gameState.hintUsed = false;
   session.gameState.answerUsed = false;
@@ -189,6 +190,30 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
     return { session: sanitizeSession(session) };
   }
 
+  if (puzzle.kind === "crossword") {
+    const crosswordDraft = answerPayload?.crosswordDraft ?? session.gameState.crosswordDraft ?? {};
+    const isSolved = puzzle.entries.every((entry) => {
+      return entry.answer.split("").every((letter, index) => {
+        const row = entry.direction === "down" ? entry.row + index : entry.row;
+        const col = entry.direction === "across" ? entry.col + index : entry.col;
+        const key = `${row}-${col}`;
+
+        return entry.prefilledIndexes.includes(index) ||
+          String(crosswordDraft[key] ?? "").toLowerCase() === letter.toLowerCase();
+      });
+    });
+
+    if (isSolved) {
+      handleSolvedRoom(session);
+      await saveSessionRecord(session);
+      return { session: sanitizeSession(session) };
+    }
+
+    await handleFailedAttempt(session, "Some crossword letters are not correct yet.");
+    await saveSessionRecord(session);
+    return { session: sanitizeSession(session) };
+  }
+
   if (puzzle.kind === "email-investigation") {
     const userAnswer = (answerPayload?.textAnswer ?? session.gameState.textAnswerDraft)?.trim().toLowerCase();
     const correctAnswer = puzzle.answer.trim().toLowerCase();
@@ -279,7 +304,7 @@ export const updateTextDraftSession = async ({ sessionId, text, actorPlayerId })
 
   if (
     !session.gameState.activePuzzle ||
-    !["text", "email-investigation"].includes(session.gameState.activePuzzle.kind)
+    !["text", "email-investigation", "corrupted-documents"].includes(session.gameState.activePuzzle.kind)
   ) {
     return { error: "Text draft is not available right now." };
   }
@@ -372,6 +397,52 @@ export const updateLogicBoardDraftSession = async ({ sessionId, selection, actor
   return { session: sanitizeSession(session) };
 };
 
+export const updateCrosswordDraftSession = async ({ sessionId, draft, actorPlayerId }) => {
+  const session = await getSessionRecordOrLoad(sessionId);
+
+  if (!session) {
+    return { error: "Session not found." };
+  }
+
+  const puzzle = session.gameState.activePuzzle;
+
+  if (!puzzle || puzzle.kind !== "crossword") {
+    return { error: "Crossword draft is not available right now." };
+  }
+
+  const allowedKeys = new Set();
+  puzzle.entries.forEach((entry) => {
+    entry.answer.split("").forEach((_letter, index) => {
+      const row = entry.direction === "down" ? entry.row + index : entry.row;
+      const col = entry.direction === "across" ? entry.col + index : entry.col;
+      allowedKeys.add(`${row}-${col}`);
+    });
+  });
+
+  const nextDraft = {};
+
+  if (draft && typeof draft === "object" && !Array.isArray(draft)) {
+    Object.entries(draft).forEach(([key, value]) => {
+      const nextValue = String(value ?? "").replace(/[^a-z]/gi, "").slice(-1).toUpperCase();
+
+      if (allowedKeys.has(key) && nextValue) {
+        nextDraft[key] = nextValue;
+      }
+    });
+  }
+
+  session.gameState.crosswordDraft = nextDraft;
+  const player = session.players.find((candidate) => candidate.id === actorPlayerId);
+  if (player) {
+    player.editingTarget = "crossword grid";
+    player.lastSeenAt = new Date().toISOString();
+  }
+  touchSession(session);
+  await saveSessionRecord(session);
+
+  return { session: sanitizeSession(session) };
+};
+
 export const endSessionRun = async ({ sessionId, actorPlayerId }) => {
   const session = await getSessionRecordOrLoad(sessionId);
 
@@ -424,6 +495,7 @@ export const restartSessionRun = async ({ sessionId, actorPlayerId }) => {
       emailSearchDraft: "",
       emailSelectedId: "",
       logicBoardDraft: "",
+      crosswordDraft: {},
       loading: false,
       hintUsed: false,
       answerUsed: false,

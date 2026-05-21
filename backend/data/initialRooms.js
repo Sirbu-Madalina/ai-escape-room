@@ -7,7 +7,7 @@ export const initialRooms = [
     difficulty: "easy",
     themeClass: "cyan",
     unlocked: true,
-    puzzleType: "ai-riddle",
+    puzzleType: "crossword",
     timeLimitSeconds: 120,
   },
   {
@@ -24,12 +24,12 @@ export const initialRooms = [
   {
     id: 3,
     title: "Room 3",
-    subtitle: "AI Escape Room - Neon Grid",
-    theme: "neon grid",
+    subtitle: "AI Escape Room - Corrupted Documents",
+    theme: "corrupted document archive",
     difficulty: "hard",
     themeClass: "pink",
     unlocked: false,
-    puzzleType: "logic-board",
+    puzzleType: "corrupted-documents",
     timeLimitSeconds: 180,
   },
 ];

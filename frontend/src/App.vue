@@ -7,76 +7,84 @@
     @error="musicUnavailable = true"
   ></audio>
 
-  <section class="music-control" aria-label="Ambient music controls">
-    <button
-      type="button"
-      class="music-control__toggle"
-      :disabled="musicUnavailable"
-      @click="toggleMusic"
-    >
-      {{ isMusicPlaying ? "Music On" : "Music Off" }}
-    </button>
-
-    <label class="music-control__volume">
-      <span>Volume</span>
-      <input
-        v-model.number="musicVolume"
-        type="range"
-        min="0"
-        max="1"
-        step="0.05"
-        :disabled="musicUnavailable"
-        @input="applyMusicVolume"
-      />
-    </label>
-  </section>
-
   <main v-if="currentScreen === 'lobby'" class="app-shell lobby-dashboard-shell">
-    <section class="dashboard-hero">
+    <header class="dashboard-hero">
       <div class="dashboard-hero__copy">
         <p class="eyebrow">AI Escape Room Experience</p>
         <h1>MindLock Protocol</h1>
-        <p class="hero-copy">
-          <template v-if="session">
-            Solve together in one shared run. Host controls the flow while the team cracks clues live.
-          </template>
-          <template v-else>
-            Solve solo immediately, or create a shared session when you want friends in the room.
-          </template>
-        </p>
       </div>
 
-      <section class="dashboard-stats" aria-label="Run status">
-        <article class="dashboard-stat">
-          <span class="dashboard-stat__icon dashboard-stat__icon--life" aria-hidden="true"></span>
-          <div>
-            <span class="status-chip__label">Lives</span>
-            <strong>{{ lives }} / {{ maxLives }}</strong>
-            <p>{{ selectedIntensityLabel }} pressure</p>
-          </div>
-        </article>
+      <div class="dashboard-hero__controls">
+        <MusicControl
+          v-model:volume="musicVolume"
+          :disabled="musicUnavailable"
+          :is-playing="isMusicPlaying"
+          @toggle="toggleMusic"
+          @update:volume="applyMusicVolume"
+        />
 
-        <article class="dashboard-stat">
-          <span class="dashboard-stat__ring" :style="{ '--progress': `${progressPercent}%` }" aria-hidden="true"></span>
-          <div>
-            <span class="status-chip__label">Progress</span>
-            <strong>{{ progressPercent }}%</strong>
-            <p>{{ clearedRoomsCount }} / {{ rooms.length }} rooms cleared</p>
-            <span class="progress-track">
-              <span :style="{ width: `${progressPercent}%` }"></span>
-            </span>
-          </div>
-        </article>
+        <div class="difficulty-control">
+          <button
+            type="button"
+            class="difficulty-control__button"
+            :class="{ 'difficulty-control__button--open': isDifficultyMenuOpen }"
+            :disabled="Boolean(session)"
+            aria-haspopup="listbox"
+            :aria-expanded="isDifficultyMenuOpen"
+            @click="toggleDifficultyMenu"
+          >
+            <span>{{ selectedIntensityLabel }}</span>
+          </button>
 
-        <article class="dashboard-stat">
-          <span class="dashboard-stat__icon dashboard-stat__icon--session" aria-hidden="true"></span>
-          <div>
-            <span class="status-chip__label">{{ session ? "Session Code" : "Mode" }}</span>
-            <strong>{{ session?.joinCode ?? "Solo Ready" }}</strong>
-            <p>{{ session ? "Share with friends" : "Co-op is optional" }}</p>
+          <div
+            v-if="isDifficultyMenuOpen"
+            class="difficulty-control__menu"
+            role="listbox"
+          >
+            <button
+              v-for="option in intensityOptions"
+              :key="option.id"
+              type="button"
+              class="difficulty-control__option"
+              :class="{ 'difficulty-control__option--selected': selectedIntensity === option.id }"
+              role="option"
+              :aria-selected="selectedIntensity === option.id"
+              @click="chooseIntensity(option.id)"
+            >
+              {{ option.label }}
+            </button>
           </div>
-        </article>
-      </section>
+        </div>
+
+        <button class="replay-button" @click="retryRun">
+          Replay
+        </button>
+      </div>
+    </header>
+
+    <section class="dashboard-stats" aria-label="Run status">
+      <article class="dashboard-stat">
+        <span class="status-chip__label">Lives</span>
+        <div class="dashboard-stat__value-row">
+          <strong>{{ lives }}/{{ maxLives }}</strong>
+          <p>{{ selectedIntensityLabel }}</p>
+        </div>
+      </article>
+
+      <article class="dashboard-stat">
+        <span class="status-chip__label">Progress</span>
+        <div class="dashboard-stat__value-row">
+          <strong>{{ clearedRoomsCount }}/{{ rooms.length }}</strong>
+          <p>Rooms</p>
+        </div>
+      </article>
+
+      <article class="dashboard-stat">
+        <span class="status-chip__label">{{ session ? "Session Code" : "Solo-Mode" }}</span>
+        <div class="dashboard-stat__value-row">
+          <strong>{{ session?.joinCode ?? "000000" }}</strong>
+        </div>
+      </article>
     </section>
 
     <section class="dashboard-layout">
@@ -84,8 +92,8 @@
         <section class="dashboard-panel rooms-panel">
           <div class="dashboard-panel__header">
             <div>
-              <p class="panel-label">Escape Rooms</p>
-              <h2>Choose your challenge</h2>
+              <p class="panel-label">Current Rooms</p>
+              <h2>Current rooms</h2>
             </div>
             <span>{{ availableRoomCount }} available</span>
           </div>
@@ -114,6 +122,13 @@
       </div>
 
       <aside class="dashboard-sidebar">
+        <div class="dashboard-panel__header dashboard-panel__header--compact">
+          <div>
+            <p class="panel-label">{{ session ? "Current Team" : "Current Play With Friends" }}</p>
+            <h2>{{ session ? "Current team" : "Current play with friends" }}</h2>
+          </div>
+        </div>
+
         <SessionAccessPanel
           v-if="!session"
           :player-name="playerName"
@@ -138,52 +153,44 @@
           @leave="leaveSession"
           @copy-invite="copyInviteLink"
         />
-
-        <section class="intensity-panel" aria-label="Intensity level">
-          <div>
-            <p class="panel-label">Intensity</p>
-            <h2>Pressure level</h2>
-          </div>
-
-          <div class="intensity-options">
-            <button
-              v-for="option in intensityOptions"
-              :key="option.id"
-              type="button"
-              class="intensity-option"
-              :class="{ 'intensity-option--selected': selectedIntensity === option.id }"
-              :disabled="Boolean(session)"
-              @click="setIntensity(option.id)"
-            >
-              <strong>{{ option.label }}</strong>
-              <span>{{ option.description }}</span>
-            </button>
-          </div>
-        </section>
-
-        <button class="secondary-button lobby-replay-button" @click="retryRun">
-          Replay Run
-        </button>
       </aside>
     </section>
   </main>
 
-  <main v-else-if="currentScreen === 'room'" class="mission-shell">
+  <main
+    v-else-if="currentScreen === 'room'"
+    class="mission-shell"
+    :class="`mission-shell--${selectedRoom.themeClass}`"
+  >
     <section class="mission-frame" :class="`mission-frame--${selectedRoom.themeClass}`">
       <header class="mission-topbar">
         <div>
-          <h1>{{ selectedRoom.title }}</h1>
           <p class="mission-subtitle">{{ selectedRoom.subtitle }}</p>
+          <h1>{{ selectedRoom.title }}</h1>
         </div>
 
         <div class="mission-actions">
-          <div class="info-pill">
-            <span>{{ lives }}/{{ maxLives }}</span>
-            <span aria-hidden="true">♥</span>
-          </div>
+          <MusicControl
+            v-if="selectedRoom.id === 2"
+            v-model:volume="musicVolume"
+            class="music-control--mission"
+            :disabled="musicUnavailable"
+            :is-playing="isMusicPlaying"
+            @toggle="toggleMusic"
+            @update:volume="applyMusicVolume"
+          />
 
           <button
-            class="ghost-button"
+            class="primary-button mission-exit-button"
+            :class="`primary-button--${selectedRoom.themeClass}`"
+            :disabled="Boolean(session && !isHost)"
+            @click="exitRoom"
+          >
+            Exit room
+          </button>
+
+          <button
+            class="ghost-button mission-hint-button"
             :class="`ghost-button--${selectedRoom.themeClass}`"
             :disabled="!activePuzzle || hintUsed"
             @click="useHint"
@@ -191,21 +198,17 @@
             Show hint
           </button>
           <button
-            class="ghost-button"
+            class="ghost-button mission-answer-button"
             :class="`ghost-button--${selectedRoom.themeClass}`"
             :disabled="!activePuzzle || answerUsed || roomCleared"
             @click="useAnswerReveal"
           >
             Get answer
           </button>
-          <button
-            class="primary-button"
-            :class="`primary-button--${selectedRoom.themeClass}`"
-            :disabled="Boolean(session && !isHost)"
-            @click="exitRoom"
-          >
-            Exit
-          </button>
+          <div class="info-pill">
+            <span aria-hidden="true">♡</span>
+            <span>{{ lives }}/{{ maxLives }}</span>
+          </div>
         </div>
       </header>
 
@@ -237,6 +240,15 @@
             />
           </template>
 
+          <template v-else-if="activePuzzle.kind === 'crossword'">
+            <CrosswordPuzzleView
+              v-model="crosswordDraft"
+              :disabled="roomCleared"
+              :puzzle="activePuzzle"
+              @update:model-value="handleCrosswordDraftUpdate"
+            />
+          </template>
+
           <template v-else-if="activePuzzle.kind === 'email-investigation'">
             <EmailInvestigationPuzzleView
               :puzzle="activePuzzle"
@@ -247,6 +259,15 @@
               @update:search-query="handleEmailSearchUpdate"
               @update:selected-email-id="handleEmailSelectionUpdate"
               @update:answer="handleEmailAnswerUpdate"
+            />
+          </template>
+
+          <template v-else-if="activePuzzle.kind === 'corrupted-documents'">
+            <CorruptedDocumentsPuzzleView
+              :answer="answerInput"
+              :disabled="roomCleared"
+              :puzzle="activePuzzle"
+              @update:answer="handleCorruptedDocumentsAnswerUpdate"
             />
           </template>
 
@@ -264,12 +285,18 @@
           <p v-if="showAnswerText && activePuzzle.kind === 'text'" class="answer-text">
             Answer: {{ activePuzzle.answer }}
           </p>
+          <p v-if="showAnswerText && activePuzzle.kind === 'crossword'" class="answer-text">
+            Crossword answer: {{ activePuzzle.answer }}
+          </p>
           <p v-if="showAnswerText && activePuzzle.kind === 'logic-board'" class="answer-text">
             Correct terminal:
             {{ logicBoardAnswerLabel }}
           </p>
           <p v-if="showAnswerText && activePuzzle.kind === 'email-investigation'" class="answer-text">
             Override code: {{ activePuzzle.answer }}
+          </p>
+          <p v-if="showAnswerText && activePuzzle.kind === 'corrupted-documents'" class="answer-text">
+            Recovery phrase: {{ activePuzzle.answer }}
           </p>
           <p v-if="showExplanation" class="explanation-text">
             Explanation: {{ activePuzzle.explanation }}
@@ -358,14 +385,18 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount, onMounted } from "vue";
+import MusicControl from "./components/MusicControl.vue";
 import RoomCard from "./components/RoomCard.vue";
 import SessionAccessPanel from "./components/SessionAccessPanel.vue";
 import SessionChatPanel from "./components/SessionChatPanel.vue";
 import SessionLobbyPanel from "./components/SessionLobbyPanel.vue";
+import CorruptedDocumentsPuzzleView from "./components/puzzles/CorruptedDocumentsPuzzle.vue";
+import CrosswordPuzzleView from "./components/puzzles/CrosswordPuzzle.vue";
 import EmailInvestigationPuzzleView from "./components/puzzles/EmailInvestigationPuzzle.vue";
 import LogicBoardPuzzleView from "./components/puzzles/LogicBoardPuzzle.vue";
 import { useGameplay } from "./composables/useGameplay";
 import { useSession } from "./composables/useSession";
+import type { IntensityLevel } from "./data/intensity";
 
 const MUSIC_ENABLED_KEY = "ai-escape-room-music-enabled";
 const MUSIC_VOLUME_KEY = "ai-escape-room-music-volume";
@@ -374,6 +405,7 @@ const ambientAudio = ref<HTMLAudioElement | null>(null);
 const isMusicPlaying = ref(false);
 const musicUnavailable = ref(false);
 const musicVolume = ref(0.35);
+const isDifficultyMenuOpen = ref(false);
 
 const gameplay = useGameplay();
 const {
@@ -403,6 +435,7 @@ const {
   emitDraftText,
   emitDraftEmail,
   emitDraftLogic,
+  emitDraftCrossword,
   emitEditingPresence,
   leaveSession,
   disconnectRealtime,
@@ -432,6 +465,7 @@ const {
   emailSearchQuery,
   selectedEmailId,
   logicBoardSelection,
+  crosswordDraft,
   message,
   showHint,
   hintUsed,
@@ -459,10 +493,6 @@ const {
 
 const selectedIntensityLabel = computed(() => {
   return intensityOptions.find((option) => option.id === selectedIntensity.value)?.label ?? "Medium";
-});
-
-const progressPercent = computed(() => {
-  return Math.round((clearedRoomsCount.value / rooms.value.length) * 100);
 });
 
 const availableRoomCount = computed(() => {
@@ -562,6 +592,26 @@ const handleEmailAnswerUpdate = (nextValue: string) => {
   if (session.value) {
     emitDraftText(nextValue);
     emitEditingPresence("override code");
+    return;
+  }
+
+  answerInput.value = nextValue;
+};
+
+const handleCrosswordDraftUpdate = (nextValue: Record<string, string>) => {
+  if (session.value) {
+    emitDraftCrossword(nextValue);
+    emitEditingPresence("crossword grid");
+    return;
+  }
+
+  crosswordDraft.value = nextValue;
+};
+
+const handleCorruptedDocumentsAnswerUpdate = (nextValue: string) => {
+  if (session.value) {
+    emitDraftText(nextValue);
+    emitEditingPresence("recovery console");
     return;
   }
 
@@ -707,6 +757,19 @@ const retryRun = () => {
   resetRoomActions();
 };
 
+const toggleDifficultyMenu = () => {
+  if (session.value) {
+    return;
+  }
+
+  isDifficultyMenuOpen.value = !isDifficultyMenuOpen.value;
+};
+
+const chooseIntensity = (intensity: IntensityLevel) => {
+  setIntensity(intensity);
+  isDifficultyMenuOpen.value = false;
+};
+
 const useHint = () => {
   if (session.value) {
     emitHint();
@@ -742,6 +805,7 @@ const useAnswerReveal = () => {
 const checkAnswer = () => {
   if (session.value) {
     emitSubmitAnswer({
+      crosswordDraft: crosswordDraft.value,
       textAnswer: answerInput.value,
       logicBoardSelection: logicBoardSelection.value,
     });
@@ -749,6 +813,27 @@ const checkAnswer = () => {
   }
 
   if (!activePuzzle.value || roomCleared.value) {
+    return;
+  }
+
+  if (activePuzzle.value.kind === "crossword") {
+    const isSolved = activePuzzle.value.entries.every((entry) => {
+      return entry.answer.split("").every((letter, index) => {
+        const row = entry.direction === "down" ? entry.row + index : entry.row;
+        const col = entry.direction === "across" ? entry.col + index : entry.col;
+        const key = `${row}-${col}`;
+
+        return entry.prefilledIndexes.includes(index) ||
+          crosswordDraft.value[key]?.toLowerCase() === letter.toLowerCase();
+      });
+    });
+
+    if (isSolved) {
+      handleSolvedRoom();
+      return;
+    }
+
+    void handleFailedAttempt("Some crossword letters are not correct yet.");
     return;
   }
 

@@ -41,6 +41,7 @@ export const createInitialGameState = (intensity = "medium") => {
     emailSearchDraft: "",
     emailSelectedId: "",
     logicBoardDraft: "",
+    crosswordDraft: {},
     loading: false,
     hintUsed: false,
     answerUsed: false,
