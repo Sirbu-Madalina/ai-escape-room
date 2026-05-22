@@ -1,10 +1,7 @@
 :root {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   color: #f5f7fb;
-  background:
-    radial-gradient(circle at top left, rgba(21, 72, 122, 0.2), transparent 30%),
-    radial-gradient(circle at top right, rgba(126, 31, 125, 0.14), transparent 25%),
-    linear-gradient(180deg, #080b14 0%, #070a12 100%);
+  background: #000000;
   color-scheme: dark;
 }
 
@@ -19,6 +16,7 @@ body,
 #app {
   width: 100%;
   min-height: 100%;
+  background: #000000;
   overflow-x: hidden;
 }
 
@@ -2006,11 +2004,32 @@ input:focus {
   opacity: 0.72;
 }
 
+.lobby-dashboard-shell .theme-cyan::before {
+  height: 270px;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 22, 0.04), rgba(8, 12, 22, 0.92)),
+    url("/room1-card.png") center / cover no-repeat,
+    url("./assets/hero.png") center / cover no-repeat;
+  opacity: 0.9;
+}
+
 .lobby-dashboard-shell .theme-gold::before {
-  filter: sepia(0.32) saturate(1.08);
+  height: 270px;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 22, 0.04), rgba(8, 12, 22, 0.92)),
+    url("/room2-card.png") center / cover no-repeat,
+    url("./assets/hero.png") center / cover no-repeat;
+  opacity: 0.9;
+  filter: sepia(0.18) saturate(1.04);
 }
 
 .lobby-dashboard-shell .theme-pink::before {
+  height: 270px;
+  background:
+    linear-gradient(180deg, rgba(8, 12, 22, 0.04), rgba(8, 12, 22, 0.92)),
+    url("/room3-card.png") center / cover no-repeat,
+    url("./assets/hero.png") center / cover no-repeat;
+  opacity: 0.9;
   filter: hue-rotate(88deg) saturate(1.2);
 }
 
@@ -2362,7 +2381,7 @@ input:focus {
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: #05070d;
+  background: #000000;
 }
 
 .lobby-dashboard-shell::after {
@@ -2721,18 +2740,36 @@ input:focus {
 }
 
 .lobby-dashboard-shell .room-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+  grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  height: 100%;
 }
 
 .lobby-dashboard-shell .room-card {
-  min-height: 470px;
+  min-height: 0;
   border-radius: 10px;
   background: rgba(7, 10, 18, 0.92);
 }
 
+.lobby-dashboard-shell .room-card::before {
+  inset: 0 auto 0 0;
+  width: min(46%, 340px);
+  height: 100%;
+}
+
+.lobby-dashboard-shell .theme-cyan::before,
+.lobby-dashboard-shell .theme-gold::before,
+.lobby-dashboard-shell .theme-pink::before {
+  height: 100%;
+}
+
 .lobby-dashboard-shell .room-card__content {
+  min-height: 100%;
   padding: 24px;
+  padding-left: calc(min(46%, 340px) + 24px);
+  justify-content: center;
+  gap: 14px;
 }
 
 .lobby-dashboard-shell .room-card h2 {
@@ -2741,6 +2778,10 @@ input:focus {
 
 .lobby-dashboard-shell .room-card p {
   font-size: 0.98rem;
+}
+
+.lobby-dashboard-shell .room-card__button {
+  width: min(260px, 100%);
 }
 
 .lobby-dashboard-shell .session-setup-actions {
@@ -2779,8 +2820,8 @@ input:focus {
 
 .lobby-dashboard-shell .dashboard-sidebar .lobby-chat-card {
   display: flex;
-  height: 440px;
-  min-height: 440px;
+  height: 485px;
+  min-height: 485px;
   flex-direction: column;
   justify-content: center;
   padding: 30px;
@@ -3241,14 +3282,22 @@ input:focus {
 }
 
 .mission-shell--gold {
-  width: min(1760px, calc(100% - 96px));
-  padding: 58px 0 70px;
+  width: 100%;
+  padding: 0 56px 64px;
+  background: #000000;
+}
+
+.mission-shell--pink {
+  width: 100%;
+  padding: 0 56px 64px;
+  background: #000000;
 }
 
 .mission-frame--gold {
   position: relative;
-  min-height: calc(100vh - 56px);
-  overflow: hidden;
+  min-height: auto;
+  overflow: visible;
+  padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -3256,16 +3305,18 @@ input:focus {
 }
 
 .mission-frame--gold::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -2;
-  background:
-    linear-gradient(90deg, rgba(0, 0, 0, 0.66) 0%, rgba(5, 8, 13, 0.44) 42%, rgba(0, 0, 0, 0.68) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.38) 0%, rgba(0, 0, 0, 0.62) 100%),
-    url("/room2-bg.jpg") center / cover no-repeat,
-    url("/escape-room-bg.jpg") center / cover no-repeat,
-    url("./assets/hero.png") center / cover no-repeat;
+  display: none;
+}
+
+.mission-frame--pink {
+  position: relative;
+  min-height: auto;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .mission-frame--gold .mission-topbar {
@@ -3373,11 +3424,11 @@ input:focus {
 .mission-frame--gold .mission-card {
   margin-top: 0;
   padding: 0;
-  overflow: hidden;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(18, 21, 30, 0.97);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .mission-frame--gold .mission-card > .panel-label,
@@ -3386,15 +3437,22 @@ input:focus {
   display: none;
 }
 
+.mission-frame--pink .mission-card > .panel-label,
+.mission-frame--pink .mission-card > h2,
+.mission-frame--pink .mission-card > .puzzle-text {
+  display: none;
+}
+
 .mission-frame--gold .email-investigation {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 40px;
   margin-top: 0;
-  gap: 0;
+  align-items: stretch;
 }
 
 .mission-frame--gold .email-investigation__workspace {
-  grid-template-columns: minmax(320px, 0.31fr) minmax(0, 0.69fr);
-  gap: 0;
-  min-height: 560px;
+  display: contents;
 }
 
 .mission-frame--gold .email-investigation__inbox,
@@ -3403,18 +3461,17 @@ input:focus {
 .mission-frame--gold .email-investigation__profile,
 .mission-frame--gold .email-investigation__notes,
 .mission-frame--gold .email-investigation__clues {
-  border-radius: 0;
+  border-radius: 10px;
   border: 0;
-  background: transparent;
-  box-shadow: none;
+  background: rgba(12, 16, 26, 0.98);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.36);
 }
 
 .mission-frame--gold .email-investigation__inbox {
   gap: 14px;
-  max-height: 560px;
-  padding: 22px;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-  background: rgba(13, 16, 24, 0.94);
+  min-height: 620px;
+  max-height: 620px;
+  padding: 30px;
   overflow: auto;
 }
 
@@ -3463,7 +3520,9 @@ input:focus {
 
 .mission-frame--gold .email-investigation__reader {
   min-width: 0;
-  background: rgba(18, 21, 30, 0.98);
+  min-height: 620px;
+  max-height: 620px;
+  overflow: hidden;
 }
 
 .mission-frame--gold .email-investigation__actions {
@@ -3471,9 +3530,15 @@ input:focus {
 }
 
 .mission-frame--gold .email-investigation__reader-body {
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.3fr);
-  gap: 28px;
-  padding: 34px 42px 24px;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
+  gap: 30px;
+  height: 100%;
+  padding: 30px;
+  overflow: auto;
+}
+
+.mission-frame--gold .email-investigation__content {
+  box-shadow: none;
 }
 
 .mission-frame--gold .email-investigation__author-row p {
@@ -3520,10 +3585,11 @@ input:focus {
 }
 
 .mission-frame--gold .email-investigation__profile {
-  padding: 24px;
+  padding: 20px;
   border: 1px solid rgba(255, 196, 77, 0.13);
   border-radius: 8px;
-  background: rgba(10, 13, 22, 0.42);
+  background: rgba(10, 13, 22, 0.72);
+  box-shadow: none;
 }
 
 .mission-frame--gold .logic-board__label {
@@ -3536,12 +3602,14 @@ input:focus {
 }
 
 .mission-frame--gold .email-investigation__bottom-grid {
+  grid-column: 2;
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
+  margin-top: -16px;
 }
 
 .mission-frame--gold .email-investigation__notes {
-  padding: 0 42px 30px calc(31% + 42px);
+  padding: 30px;
 }
 
 .mission-frame--gold .email-investigation__clues {
@@ -3558,16 +3626,17 @@ input:focus {
   min-height: 82px;
   border: 1px solid rgba(135, 148, 180, 0.1);
   background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
 }
 
 .mission-frame--gold > .mission-card > .status-message {
-  margin: 0;
-  padding: 0 42px 24px calc(31% + 42px);
+  margin: 22px 0 0;
+  padding: 0;
 }
 
 .mission-frame--gold .mission-footer {
   margin: 0;
-  padding: 0 42px 34px calc(31% + 42px);
+  padding: 0;
 }
 
 @media (max-width: 1320px) {
@@ -3787,6 +3856,10 @@ input:focus {
   margin-top: 48px;
 }
 
+.mission-shell--gold > .mission-frame {
+  margin-top: 40px;
+}
+
 .mission-room-layout {
   display: grid;
   grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
@@ -3913,38 +3986,49 @@ input:focus {
 }
 
 .mission-frame--cyan .mission-card,
-.mission-frame--gold .mission-card {
+.mission-frame--gold .mission-card,
+.mission-frame--pink .mission-card {
   margin-top: 0;
 }
 
 .mission-frame--cyan .mission-room-chat.lobby-chat-card,
-.mission-frame--gold .mission-room-chat.lobby-chat-card {
+.mission-frame--gold .mission-room-chat.lobby-chat-card,
+.mission-frame--pink .mission-room-chat.lobby-chat-card {
   margin-top: 0;
   padding: 30px;
 }
 
 .mission-frame--cyan .mission-room-chat.lobby-chat-card > h2,
-.mission-frame--gold .mission-room-chat.lobby-chat-card > h2 {
+.mission-frame--gold .mission-room-chat.lobby-chat-card > h2,
+.mission-frame--pink .mission-room-chat.lobby-chat-card > h2 {
   display: block;
 }
 
 .mission-frame--cyan .mission-room-chat.lobby-chat-card > .puzzle-text,
-.mission-frame--gold .mission-room-chat.lobby-chat-card > .puzzle-text {
+.mission-frame--gold .mission-room-chat.lobby-chat-card > .puzzle-text,
+.mission-frame--pink .mission-room-chat.lobby-chat-card > .puzzle-text {
   display: none;
 }
 
-.mission-frame--cyan .mission-room-layout {
+.mission-frame--cyan .mission-room-layout,
+.mission-frame--gold .mission-room-layout,
+.mission-frame--pink .mission-room-layout {
   grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
   gap: 40px;
 }
 
-.mission-frame--cyan .mission-room-chat.lobby-chat-card {
+.mission-frame--cyan .mission-room-chat.lobby-chat-card,
+.mission-frame--gold .mission-room-chat.lobby-chat-card,
+.mission-frame--pink .mission-room-chat.lobby-chat-card {
   height: min(720px, calc(100vh - 260px));
   min-height: 620px;
 }
 
-.mission-frame--cyan .mission-puzzle-card {
+.mission-frame--cyan .mission-puzzle-card,
+.mission-frame--gold .mission-puzzle-card,
+.mission-frame--pink .mission-puzzle-card {
   overflow: visible;
+  padding: 0;
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -3999,11 +4083,127 @@ input:focus {
   background: rgba(255, 255, 255, 0.035);
 }
 
-.mission-submit-inline {
-  display: inline-flex;
-  min-height: 46px;
+.mission-frame--pink .corrupted-documents {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(420px, 1fr) minmax(240px, 320px);
+  gap: 40px;
+  margin-top: 0;
+  align-items: stretch;
+}
+
+.mission-frame--pink .mission-room-chat.lobby-chat-card {
+  height: 620px;
+  min-height: 620px;
+  max-height: 620px;
+}
+
+.mission-frame--pink .corrupted-documents__viewer,
+.mission-frame--pink .corrupted-documents__document,
+.mission-frame--pink .corrupted-documents__recovery {
+  min-height: 620px;
+  max-height: 620px;
+  overflow: auto;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(12, 16, 26, 0.98);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.36);
+}
+
+.mission-frame--pink .corrupted-documents__viewer,
+.mission-frame--pink .corrupted-documents__document,
+.mission-frame--pink .corrupted-documents__recovery {
+  padding: 30px;
+}
+
+.mission-frame--pink .corrupted-documents__file,
+.mission-frame--pink .corrupted-documents__brief,
+.mission-frame--pink .corrupted-documents__recovery li,
+.mission-frame--pink .corrupted-documents__clue,
+.mission-frame--pink .corrupted-documents__document pre {
+  border-color: rgba(135, 148, 180, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.035);
+  box-shadow: none;
+}
+
+.mission-frame--pink .corrupted-documents__viewer {
+  align-content: start;
+  gap: 12px;
+}
+
+.mission-frame--pink .corrupted-documents__document pre {
+  min-height: 330px;
+  max-height: 350px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(168, 85, 247, 0.025) 0,
+      rgba(168, 85, 247, 0.025) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    rgba(3, 6, 12, 0.72);
+}
+
+.mission-frame--pink .corrupted-documents__recovery {
+  align-self: stretch;
+}
+
+.mission-frame--pink .corrupted-documents__brief {
+  margin-top: 18px;
+}
+
+.mission-frame--pink .corrupted-documents__recovery ul {
+  gap: 12px;
+}
+
+.mission-submit-row {
+  display: flex;
+  width: 100%;
   margin-top: 28px;
-  margin-left: auto;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 20px;
+}
+
+.mission-submit-answer-field {
+  display: grid;
+  width: min(320px, 100%);
+  gap: 8px;
+}
+
+.mission-submit-answer-field span {
+  color: #d39eff;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mission-submit-answer-field input {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  background: rgba(7, 10, 18, 0.92);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mission-submit-answer-field input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+  opacity: 1;
+}
+
+.mission-submit-inline {
+  display: flex;
+  width: max-content;
+  min-height: 46px;
+  margin-top: 0;
+  margin-left: 0;
   padding: 0 9px;
   align-items: center;
   justify-content: center;
@@ -4020,6 +4220,67 @@ input:focus {
 .mission-submit-inline:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.wrong-answer-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.wrong-answer-modal__card {
+  width: min(420px, 100%);
+  padding: 30px;
+  border: 2px solid #a855f7;
+  border-radius: 10px;
+  background: #0c101a;
+  color: #ffffff;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.wrong-answer-modal__eyebrow {
+  margin: 0;
+  color: #ff4f52;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wrong-answer-modal__card h2 {
+  margin: 12px 0 0;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.05;
+}
+
+.wrong-answer-modal__card p:not(.wrong-answer-modal__eyebrow) {
+  margin: 14px auto 0;
+  color: #b5b5b5;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.wrong-answer-modal__card button {
+  display: inline-flex;
+  height: 46px;
+  margin-top: 24px;
+  padding: 0 18px;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid #a855f7;
+  border-radius: 10px;
+  background: transparent;
+  color: #a855f7;
+  font-size: 18px;
+  font-weight: 900;
 }
 
 @media (max-width: 1320px) {

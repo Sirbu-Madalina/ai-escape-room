@@ -52,9 +52,12 @@ export type CorruptedDocument = {
   id: string;
   title: string;
   classification: string;
+  puzzleType: "missing-letters" | "hidden-word" | "reverse-word" | "remove-symbols" | "capital-letters";
   corruptedText: string;
+  clue: string;
   hiddenClue: string;
   clueLabel: string;
+  orderHint: string;
 };
 
 export type CorruptedDocumentsPuzzle = {
@@ -103,6 +106,7 @@ export type EmailInvestigationPuzzle = {
   hint: string;
   explanation: string;
   kind: "email-investigation";
+  generatedBy?: "ai" | "fallback";
   employeeProfile: EmployeeProfile;
   emails: ResearchEmail[];
   clues?: InvestigationClue[];

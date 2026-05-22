@@ -45,18 +45,73 @@ Rules:
   });
 };
 
+const crosswordThemes = [
+  "space station tools",
+  "kitchen objects",
+  "weather and nature",
+  "school supplies",
+  "music and sounds",
+  "travel and maps",
+  "simple mystery objects",
+  "friendly robots",
+  "game night objects",
+  "office desk items",
+  "lab safety objects",
+  "everyday city places",
+];
+
+const overusedCrosswordWords = [
+  "code",
+  "hack",
+  "data",
+  "exit",
+  "link",
+  "file",
+  "user",
+  "login",
+  "key",
+  "node",
+  "byte",
+];
+
+let recentCrosswordAnswers = [];
+
+const rememberCrosswordAnswers = (words) => {
+  recentCrosswordAnswers = [
+    ...recentCrosswordAnswers,
+    ...words.map((word) => word.answer.toLowerCase()),
+  ].slice(-40);
+};
+
+const hasRepeatedCrosswordAnswers = (words) => {
+  const answers = words.map((word) => word.answer.toLowerCase());
+  const blockedWords = new Set([...overusedCrosswordWords, ...recentCrosswordAnswers]);
+
+  return answers.some((answer) => blockedWords.has(answer));
+};
+
 export const createCrosswordPuzzle = async ({
   difficulty = "easy",
   theme = "cyber lab",
 }) => {
-  try {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
     const generationSeed = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const selectedTheme = crosswordThemes[Math.floor(Math.random() * crosswordThemes.length)];
+    const forbiddenWords = [...overusedCrosswordWords, ...recentCrosswordAnswers]
+      .slice(-28)
+      .join(", ");
     const parsed = await createStructuredSchemaResponse({
       instructions: `
 Create one beginner-friendly crossword word set for Room 1 of an AI escape room.
-Theme: ${theme}
+Main room theme: ${theme}
+Puzzle mini-theme for this generation: ${selectedTheme}
 Difficulty: ${difficulty}
 Generation seed: ${generationSeed}
+Attempt: ${attempt}
+Forbidden answers for this generation: ${forbiddenWords || "none"}
 
 The frontend will place the words into a simple fixed crossword layout, so you only generate words and clues.
 Make it fun, clear, and easy to understand. The player should feel clever, not confused.
@@ -64,13 +119,20 @@ Make it fun, clear, and easy to understand. The player should feel clever, not c
 Rules:
 - Generate exactly 5 words.
 - Each answer must be 2 to 6 letters.
-- Use common everyday words, light cyber-lab words, or escape-room words.
+- Use the puzzle mini-theme strongly, so each new game feels different.
+- Mix everyday words with light escape-room flavor.
 - Do not use obscure jargon.
+- Do not use any forbidden answer.
+- Avoid the obvious repeated cyber set: code, hack, data, exit, link.
+- Avoid using several words from the same previous puzzle pattern.
 - Every clue must point clearly to one answer.
 - Avoid vague clues such as "a thing", "something", "might", "maybe", "yummy", or "nice".
 - Clues should be short, direct, and natural.
 - Answers must be lowercase letters only.
 - No duplicate answers.
+- Prefer concrete nouns or simple actions players can picture.
+- Good clue style: "Tool used to eat soup." -> spoon.
+- Bad clue style: "Program instructions." -> code.
 `,
       schemaName: "crossword_word_set",
       schema: {
@@ -102,6 +164,12 @@ Rules:
 
     validateCrosswordWordSet(parsed);
 
+    if (hasRepeatedCrosswordAnswers(parsed.words)) {
+      throw new Error(`Crossword generation repeated blocked words: ${parsed.words.map((word) => word.answer).join(", ")}`);
+    }
+
+    rememberCrosswordAnswers(parsed.words);
+
     console.log("AI crossword generated:", parsed.words.map((word) => word.answer).join(", "));
 
     return {
@@ -109,12 +177,17 @@ Rules:
       generatedBy: "ai",
     };
   } catch (error) {
-    console.error("Crossword generation error:", error);
-    return {
-      ...createFallbackCrosswordPuzzle(),
-      generatedBy: "fallback",
-    };
+      lastError = error;
+      console.error(`Crossword generation attempt ${attempt} failed:`, error);
+    }
   }
+
+  console.error("Crossword generation error:", lastError);
+
+  return {
+    ...createFallbackCrosswordPuzzle(),
+    generatedBy: "fallback",
+  };
 };
 
 export const createEmailInvestigationPuzzle = async ({
@@ -131,6 +204,40 @@ Difficulty: ${difficulty}
 The player sees a suspicious company inbox with a search bar, opens emails, and discovers an override code.
 The puzzle must be solvable by reading clues in the emails and employee profile.
 Do not make the answer simply a birthday. The final code must require combining 3 or 4 separate clues.
+Do not write the full answer in any email, clue summary, placeholder, title, or explanation until the final explanation.
+The answer must be 4 to 7 characters using only letters and numbers. No spaces, no hyphens, no punctuation.
+
+Core game logic:
+- The final code is built only from useful code pieces.
+- If an email says "Potential clue: X", then X MUST appear somewhere in the final answer.
+- Never mark an unused value as a potential clue.
+- Decoy emails are allowed, but their clueSummary must be "No useful code clue." and they must not contain code-like values that look important.
+- The employee profile can support a useful clue, but it must not show a tempting unused code such as a badge suffix unless that exact value is part of the answer.
+
+Use clear positional clues, not obvious full-code clues.
+The player should collect pieces and placement rules from different emails.
+Make the placement feel like workplace instructions, not abstract riddles.
+
+Good clue style:
+- "Potential clue: A" in clueSummary, while the email body says: "After the document review, add signature A at the end."
+- "Potential clue: 5" in clueSummary, while the email body says: "The incident number goes in the middle slot."
+- "Potential clue: DC" in clueSummary, while the email body says: "Department codes always start emergency override codes."
+- "Potential clue: B7" in clueSummary, while the profile says it is a badge suffix and another email says suffixes close the code.
+
+Bad clue style:
+- "Shift Marker" without saying which letter/number it gives.
+- "Could hint at a numerical position."
+- "ADV-4-A" with separators in the answer.
+- "Potential clue: X123" when the final answer is "ENG37B".
+
+Every clue email must reveal one useful piece AND explain where that piece belongs:
+- first/start/opening/prefix
+- middle/second/after the prefix
+- final/end/closing/signature/suffix
+Do not split a piece and its placement rule into different clue emails.
+For example, do not write only "department code goes first" in one email and reveal "DC" somewhere else.
+Instead write: "The department code is DC. Department codes always start emergency override codes."
+Every clue email body must contain at least one concrete code piece such as "DC", "7", "B7", or "A".
 Use one of these patterns, or invent a similar one:
 - project prefix + lab number + shift marker
 - employee badge suffix + archive shelf + color keyword
@@ -140,8 +247,10 @@ Use one of these patterns, or invent a similar one:
 The employee profile may contain one clue, but never the whole answer.
 Write 5 to 6 emails. Include 3 clue emails, 1 suspicious misdirection or warning, and 1 harmless noise email.
 Every clue email should reveal a different kind of evidence.
-The "clues" array should summarize the evidence pieces needed to solve the final code.
+The "clues" array should summarize evidence pieces only, not the whole answer.
+Each item in the "clues" array with label "Potential clue" must have a value that appears in the answer.
 Keep the language concise and readable.
+The inputPlaceholder must not contain an example code.
 `,
       schemaName: "email_investigation_puzzle",
       schema: {
@@ -158,7 +267,6 @@ Keep the language concise and readable.
             properties: {
               name: { type: "string" },
               role: { type: "string" },
-              birthday: { type: "string" },
               detailLabel: { type: "string" },
               detailValue: { type: "string" },
               notes: { type: "string" },
@@ -228,14 +336,20 @@ Keep the language concise and readable.
 
     validateEmailInvestigationPuzzle(parsed);
 
+    console.log("AI email investigation generated:", parsed.title);
+
     return {
       ...parsed,
       kind: "email-investigation",
       inputPlaceholder: "Enter override code",
+      generatedBy: "ai",
     };
   } catch (error) {
     console.error("Email investigation generation error:", error);
-    return createFallbackEmailInvestigationPuzzle();
+    return {
+      ...createFallbackEmailInvestigationPuzzle(),
+      generatedBy: "fallback",
+    };
   }
 };
 
@@ -310,30 +424,119 @@ Make the statements feel like clear clues in a game.
   }
 };
 
+const corruptedCommandPhrases = [
+  "open the vault",
+  "trace the source",
+  "reset main lock",
+  "find safe code",
+  "unlock red door",
+  "light the core",
+  "close the gate",
+  "start main power",
+];
+
+const addSymbolsBetweenLetters = (word) => {
+  const symbols = ["@@", "##", "!!", "%%", "^^", "**"];
+  return word
+    .toUpperCase()
+    .split("")
+    .map((letter, index) => `${letter}${index < word.length - 1 ? symbols[index % symbols.length] : ""}`)
+    .join("");
+};
+
+const hideOneLetter = (word) => {
+  const letters = word.toUpperCase().split("");
+  const vowelIndex = letters.findIndex((letter) => "AEIOU".includes(letter));
+  const hiddenIndex = vowelIndex >= 0 ? vowelIndex : Math.min(1, letters.length - 1);
+  letters[hiddenIndex] = "_";
+  return letters.join("");
+};
+
+const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation, answer }) => {
+  const words = answer.trim().toLowerCase().split(/\s+/);
+  const [firstWord, secondWord, thirdWord] = words;
+
+  return {
+    title,
+    riddle,
+    hint,
+    explanation,
+    kind: "corrupted-documents",
+    documents: [
+      {
+        id: "doc-1",
+        title: "Access_Directive.tmp",
+        classification: "DAMAGED / 42%",
+        puzzleType: "missing-letters",
+        corruptedText: `TASK: Recover word 1.\nCORRUPTED LINE: The first command word is ${hideOneLetter(firstWord)}.\nNOTE: One letter is missing. Repair the word before moving on.`,
+        clue: "Fill the missing letter to recover the first command word.",
+        hiddenClue: firstWord.toUpperCase(),
+        clueLabel: "Word 1",
+        orderHint: "Word 1 starts the command.",
+      },
+      {
+        id: "doc-2",
+        title: "Middle_Key.redacted",
+        classification: "CONFIDENTIAL / 35%",
+        puzzleType: "hidden-word",
+        corruptedText: `TASK: Recover word 2.\nCORRUPTED LINE: System note says repair ${secondWord.toUpperCase()} corrupted command before midnight.\nNOTE: Only one full uppercase word is useful.`,
+        clue: "Find the complete uppercase word hidden in the sentence.",
+        hiddenClue: secondWord.toUpperCase(),
+        clueLabel: "Word 2",
+        orderHint: "Word 2 is the middle word.",
+      },
+      {
+        id: "doc-3",
+        title: "Final_Target.glitch",
+        classification: "RESTRICTED / 28%",
+        puzzleType: "remove-symbols",
+        corruptedText: `TASK: Recover word 3.\nCORRUPTED LINE: Final target reads ${addSymbolsBetweenLetters(thirdWord)}.\nNOTE: Symbols were injected between the real letters.`,
+        clue: "Remove every symbol. Keep only the letters.",
+        hiddenClue: thirdWord.toUpperCase(),
+        clueLabel: "Word 3",
+        orderHint: "Word 3 closes the command.",
+      },
+    ],
+    answer,
+    inputPlaceholder: "Enter recovered phrase",
+  };
+};
+
 export const createCorruptedDocumentsPuzzle = async ({
   difficulty = "hard",
   theme = "corrupted document archive",
 }) => {
-  try {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
     const parsed = await createStructuredSchemaResponse({
       instructions: `
-Create one corrupted-documents puzzle for an AI escape room.
+Create the story wrapper for one corrupted-documents puzzle in an AI escape room.
 Theme: ${theme}
 Difficulty: ${difficulty}
+Generation seed: ${Date.now()}-${Math.random().toString(16).slice(2)}
+Attempt: ${attempt}
 
-The player opens three damaged documents. Each document contains missing letters, glitch symbols, and one hidden clue fragment.
-The final answer must require combining the three fragments in document order.
-Keep corrupted text readable enough to solve, but visually glitchy.
-Use uppercase fragments in the documents, but the answer should be lowercase.
+The backend will build the actual corrupted documents from your command phrase.
+You only choose the command phrase and write short story text.
 
-Make this fun and clear, not frustrating:
-- Each hiddenClue must be a full word, never a single letter.
-- Each hiddenClue must be 3 to 10 letters.
-- The final answer must be exactly the three hiddenClue words in document order, separated by spaces.
-- The corruptedText must include enough readable context for the player to understand why that word matters.
-- Include one friendly line in each corruptedText like "Readable fragment:" or "Recovered word:" before the clue.
-- Avoid vague fragments such as "A", "T", "e", initials, or random letters.
-- Avoid requiring outside knowledge.
+The final answer must be one clear three-word command phrase.
+Choose exactly one command phrase from this list:
+- OPEN THE VAULT
+- TRACE THE SOURCE
+- RESET MAIN LOCK
+- FIND SAFE CODE
+- UNLOCK RED DOOR
+- LIGHT THE CORE
+- CLOSE THE GATE
+- START MAIN POWER
+
+Rules:
+- Return the answer in lowercase.
+- Keep title, riddle, hint, and explanation short and player-friendly.
+- Do not include document data. The backend creates the documents.
+- The explanation should explain that the three repaired words form the command phrase.
 `,
       schemaName: "corrupted_documents_puzzle",
       schema: {
@@ -344,41 +547,28 @@ Make this fun and clear, not frustrating:
           riddle: { type: "string" },
           hint: { type: "string" },
           explanation: { type: "string" },
-          documents: {
-            type: "array",
-            minItems: 3,
-            maxItems: 3,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              properties: {
-                id: { type: "string" },
-                title: { type: "string" },
-                classification: { type: "string" },
-                corruptedText: { type: "string", minLength: 80 },
-                hiddenClue: { type: "string", minLength: 3, maxLength: 10 },
-                clueLabel: { type: "string" },
-              },
-              required: ["id", "title", "classification", "corruptedText", "hiddenClue", "clueLabel"],
-            },
-          },
           answer: { type: "string" },
         },
-        required: ["title", "riddle", "hint", "explanation", "documents", "answer"],
+        required: ["title", "riddle", "hint", "explanation", "answer"],
       },
     });
 
-    validateCorruptedDocumentsPuzzle(parsed);
-
-    return {
+    const puzzle = createCorruptedDocumentsFromCommand({
       ...parsed,
-      kind: "corrupted-documents",
-      inputPlaceholder: "Enter recovered phrase",
-    };
+      answer: parsed.answer.trim().toLowerCase(),
+    });
+
+    validateCorruptedDocumentsPuzzle(puzzle);
+
+    return puzzle;
   } catch (error) {
-    console.error("Corrupted documents generation error:", error);
-    return createFallbackCorruptedDocumentsPuzzle();
+      lastError = error;
+      console.error(`Corrupted documents generation attempt ${attempt} failed:`, error);
+    }
   }
+
+  console.error("Corrupted documents generation error:", lastError);
+  return createFallbackCorruptedDocumentsPuzzle();
 };
 
 export const createPuzzleForRoom = async (room) => {

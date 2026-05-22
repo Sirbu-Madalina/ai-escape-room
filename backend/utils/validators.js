@@ -163,6 +163,15 @@ export const validateEmailInvestigationPuzzle = (value) => {
     }
   }
 
+  if (!/^[a-z0-9]{4,7}$/i.test(value.answer.trim())) {
+    throw new Error("Invalid email investigation payload: answer must be 4 to 7 letters/numbers");
+  }
+
+  const normalizedAnswer = value.answer.trim().toLowerCase();
+  const looksLikeCodePiece = (text) => /^[a-z0-9]{1,4}$/i.test(text.trim());
+  const normalizePiece = (text) => text.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+  const potentialCluePattern = /potential clue:\s*([a-z0-9]+)/i;
+
   const profile = value.employeeProfile;
   if (
     typeof profile?.name !== "string" ||
@@ -188,6 +197,19 @@ export const validateEmailInvestigationPuzzle = (value) => {
     throw new Error("Invalid email investigation payload: malformed clue");
   }
 
+  const allPotentialCluesAreUsed = value.clues.every((clue) => {
+    if (clue.label.toLowerCase() !== "potential clue") {
+      return true;
+    }
+
+    const piece = normalizePiece(clue.value);
+    return piece !== "" && normalizedAnswer.includes(piece);
+  });
+
+  if (!allPotentialCluesAreUsed) {
+    throw new Error("Invalid email investigation payload: potential clue is not used in answer");
+  }
+
   if (!Array.isArray(value.emails) || value.emails.length < 5 || value.emails.length > 6) {
     throw new Error("Invalid email investigation payload: emails must contain 5 to 6 items");
   }
@@ -210,6 +232,21 @@ export const validateEmailInvestigationPuzzle = (value) => {
   if (!hasValidEmails) {
     throw new Error("Invalid email investigation payload: malformed email");
   }
+
+  const emailPotentialCluesAreUsed = value.emails.every((email) => {
+    const match = email.clueSummary.match(potentialCluePattern);
+
+    if (!match) {
+      return true;
+    }
+
+    const piece = normalizePiece(match[1]);
+    return looksLikeCodePiece(piece) && normalizedAnswer.includes(piece);
+  });
+
+  if (!emailPotentialCluesAreUsed) {
+    throw new Error("Invalid email investigation payload: email potential clue is not used in answer");
+  }
 };
 
 export const validateCorruptedDocumentsPuzzle = (value) => {
@@ -225,23 +262,99 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
     throw new Error("Invalid corrupted documents payload: documents must have length 3");
   }
 
-  const hasValidDocuments = value.documents.every((document) =>
-    typeof document?.id === "string" &&
-    typeof document?.title === "string" &&
-    typeof document?.classification === "string" &&
-    typeof document?.corruptedText === "string" &&
-    typeof document?.hiddenClue === "string" &&
-    typeof document?.clueLabel === "string" &&
-    document.id.trim() !== "" &&
-    document.title.trim() !== "" &&
-    document.corruptedText.trim() !== "" &&
-    document.hiddenClue.trim().length >= 3 &&
-    !/^[a-z]$/i.test(document.hiddenClue.trim())
-  );
+  const allowedCommandPhrases = new Set([
+    "open the vault",
+    "trace the source",
+    "reset main lock",
+    "find safe code",
+    "unlock red door",
+    "light the core",
+    "close the gate",
+    "start main power",
+  ]);
 
-  if (!hasValidDocuments) {
-    throw new Error("Invalid corrupted documents payload: malformed document");
-  }
+  const abstractWords = [
+    "consequent",
+    "erroneous",
+    "transact",
+    "integrity",
+    "protocol",
+    "information",
+  ];
+
+  const stripToLetters = (text) => text.replace(/[^a-z]/gi, "").toLowerCase();
+  const getCapitalLetters = (text) => (text.match(/[A-Z]/g) ?? []).join("").toLowerCase();
+
+  const documentMatchesPuzzleType = (document) => {
+    const corruptedText = document.corruptedText;
+    const hiddenClue = document.hiddenClue.trim().toLowerCase();
+
+    if (!corruptedText.includes("TASK:") || !corruptedText.includes("CORRUPTED LINE:")) {
+      return false;
+    }
+
+    if (document.puzzleType === "missing-letters") {
+      return corruptedText.includes("_");
+    }
+
+    if (document.puzzleType === "hidden-word") {
+      return corruptedText.includes(document.hiddenClue.trim().toUpperCase());
+    }
+
+    if (document.puzzleType === "reverse-word") {
+      return corruptedText.toLowerCase().includes(hiddenClue.split("").reverse().join(""));
+    }
+
+    if (document.puzzleType === "remove-symbols") {
+      return stripToLetters(corruptedText).includes(hiddenClue);
+    }
+
+    if (document.puzzleType === "capital-letters") {
+      return getCapitalLetters(corruptedText).includes(hiddenClue);
+    }
+
+    return false;
+  };
+
+  value.documents.forEach((document, index) => {
+    const documentNumber = index + 1;
+
+    if (
+      typeof document?.id !== "string" ||
+      typeof document?.title !== "string" ||
+      typeof document?.classification !== "string" ||
+      !["missing-letters", "hidden-word", "reverse-word", "remove-symbols", "capital-letters"].includes(document?.puzzleType) ||
+      typeof document?.corruptedText !== "string" ||
+      typeof document?.clue !== "string" ||
+      typeof document?.hiddenClue !== "string" ||
+      typeof document?.clueLabel !== "string" ||
+      typeof document?.orderHint !== "string"
+    ) {
+      throw new Error(`Invalid corrupted documents payload: malformed document ${documentNumber}`);
+    }
+
+    if (
+      document.id.trim() === "" ||
+      document.title.trim() === "" ||
+      document.corruptedText.trim() === "" ||
+      document.clue.trim() === "" ||
+      document.orderHint.trim() === ""
+    ) {
+      throw new Error(`Invalid corrupted documents payload: empty document ${documentNumber}`);
+    }
+
+    if (!/^[a-z]{2,7}$/i.test(document.hiddenClue.trim())) {
+      throw new Error(`Invalid corrupted documents payload: unclear recovered word in document ${documentNumber}`);
+    }
+
+    if (abstractWords.includes(document.hiddenClue.trim().toLowerCase())) {
+      throw new Error(`Invalid corrupted documents payload: abstract recovered word in document ${documentNumber}`);
+    }
+
+    if (!documentMatchesPuzzleType(document)) {
+      throw new Error(`Invalid corrupted documents payload: ${document.puzzleType} task does not match document ${documentNumber}`);
+    }
+  });
 
   const normalizedAnswerWords = value.answer
     .trim()
@@ -250,6 +363,11 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
     .filter(Boolean);
 
   const normalizedFragments = value.documents.map((document) => document.hiddenClue.trim().toLowerCase());
+  const normalizedAnswer = normalizedAnswerWords.join(" ");
+
+  if (!allowedCommandPhrases.has(normalizedAnswer)) {
+    throw new Error("Invalid corrupted documents payload: answer must be a clear command phrase");
+  }
 
   if (
     normalizedAnswerWords.length !== normalizedFragments.length ||

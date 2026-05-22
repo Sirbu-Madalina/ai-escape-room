@@ -113,42 +113,6 @@
         </div>
       </section>
     </div>
-
-    <section class="email-investigation__bottom-grid">
-      <div class="email-investigation__notes">
-        <p class="logic-board__label">Your Notes</p>
-        <div class="email-investigation__note-list">
-          <article v-for="clue in normalizedClues.slice(0, 2)" :key="clue.label">
-            <strong>{{ clue.label }}</strong>
-            <p>{{ clue.value }}</p>
-          </article>
-          <label>
-            <span>Override code</span>
-            <input
-              id="email-answer-input"
-              :value="answer"
-              type="text"
-              :placeholder="puzzle.inputPlaceholder"
-              :disabled="disabled"
-              @input="onAnswerInput"
-            />
-          </label>
-        </div>
-      </div>
-
-      <div class="email-investigation__clues">
-        <div class="email-investigation__clues-header">
-          <p class="logic-board__label">Clues Discovered</p>
-          <span>{{ discoveredCluesCount }} / {{ normalizedClues.length }}</span>
-        </div>
-        <ul>
-          <li v-for="clue in normalizedClues" :key="clue.label">
-            <span>{{ clue.discovered ? "OK" : "--" }}</span>
-            {{ clue.label }}
-          </li>
-        </ul>
-      </div>
-    </section>
   </div>
 </template>
 
@@ -160,14 +124,12 @@ const props = defineProps<{
   puzzle: EmailInvestigationPuzzle;
   searchQuery: string;
   selectedEmailId: string;
-  answer: string;
   disabled: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:searchQuery": [value: string];
   "update:selectedEmailId": [value: string];
-  "update:answer": [value: string];
 }>();
 
 const normalizedSearch = computed(() => props.searchQuery.trim().toLowerCase());
@@ -203,21 +165,6 @@ const profileDetailValue = computed(() => (
   props.puzzle.employeeProfile.birthday ??
   ""
 ));
-
-const normalizedClues = computed(() => {
-  return props.puzzle.clues?.length
-    ? props.puzzle.clues
-    : [
-      { label: "Profile detail", value: profileDetailValue.value, discovered: true },
-      { label: "Inbox clue", value: "Search suspicious emails", discovered: true },
-      { label: "Code format", value: "Find the format", discovered: false },
-      { label: "Final answer", value: "Combine the clues", discovered: false },
-    ];
-});
-
-const discoveredCluesCount = computed(() => {
-  return normalizedClues.value.filter((clue) => clue.discovered).length;
-});
 
 const senderName = computed(() => {
   return selectedEmail.value?.from.split("@")[0].replace(/[._-]/g, " ") ?? "Unknown Sender";
@@ -257,7 +204,4 @@ const onSearchInput = (event: Event) => {
   emit("update:searchQuery", (event.target as HTMLInputElement).value);
 };
 
-const onAnswerInput = (event: Event) => {
-  emit("update:answer", (event.target as HTMLInputElement).value);
-};
 </script>

@@ -27,8 +27,8 @@
       <pre>{{ selectedDocument.corruptedText }}</pre>
 
       <div class="corrupted-documents__clue">
-        <span>Recovered fragment</span>
-        <strong>{{ selectedDocument.hiddenClue }}</strong>
+        <span>Repair task: {{ formatPuzzleType(selectedDocument.puzzleType) }}</span>
+        <strong>{{ selectedDocument.clue }}</strong>
       </div>
     </section>
 
@@ -36,25 +36,14 @@
       <p class="logic-board__label">Recovery Console</p>
       <div class="corrupted-documents__brief">
         <strong>Goal</strong>
-        <p>Open each document, recover one full word, then type the words in document order.</p>
+        <p>Repair each corrupted line, recover one word, then type the three-word command.</p>
       </div>
       <ul>
         <li v-for="document in puzzle.documents" :key="document.id">
           <span>{{ document.clueLabel }}</span>
-          <strong>{{ document.hiddenClue }}</strong>
+          <strong>{{ document.orderHint }}</strong>
         </li>
       </ul>
-
-      <label>
-        <span>Decoded phrase</span>
-        <input
-          :value="answer"
-          type="text"
-          :placeholder="puzzle.inputPlaceholder"
-          :disabled="disabled"
-          @input="onAnswerInput"
-        />
-      </label>
     </aside>
   </div>
 </template>
@@ -64,13 +53,8 @@ import { computed, ref } from "vue";
 import type { CorruptedDocumentsPuzzle } from "../../data/localPuzzles";
 
 const props = defineProps<{
-  answer: string;
   disabled: boolean;
   puzzle: CorruptedDocumentsPuzzle;
-}>();
-
-const emit = defineEmits<{
-  "update:answer": [value: string];
 }>();
 
 const selectedDocumentId = ref(props.puzzle.documents[0]?.id ?? "");
@@ -85,7 +69,10 @@ const integrityScore = computed(() => {
   return Math.max(18, 42 - selectedIndex * 7);
 });
 
-const onAnswerInput = (event: Event) => {
-  emit("update:answer", (event.target as HTMLInputElement).value);
+const formatPuzzleType = (puzzleType: string) => {
+  return puzzleType
+    .split("-")
+    .map((word) => word[0]?.toUpperCase() + word.slice(1))
+    .join(" ");
 };
 </script>
