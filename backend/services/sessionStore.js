@@ -16,7 +16,7 @@ export const cloneRooms = (intensity = "medium") => {
   return initialRooms.map((room) => ({
     ...room,
     difficulty: option.aiDifficulty,
-    timeLimitSeconds: Math.max(30, Math.round(room.timeLimitSeconds * option.timeMultiplier)),
+    timeLimitSeconds: option.timeLimitSeconds,
   }));
 };
 

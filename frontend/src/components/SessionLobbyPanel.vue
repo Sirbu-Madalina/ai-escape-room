@@ -1,33 +1,33 @@
 <template>
   <section class="mission-card session-summary-card">
-    <p class="panel-label">Team</p>
-    <h2>Connected players</h2>
-    <p class="puzzle-text">
-      Host controls the run flow. Everyone can still solve together in real time.
-    </p>
+    <div class="session-team-card__header">
+      <h2>Current team ({{ session.players.length }})</h2>
+      <strong>{{ session.joinCode }}</strong>
+    </div>
+
     <p v-if="realtimeError" class="status-message">{{ realtimeError }}</p>
 
-    <div class="player-pill-list">
+    <div class="player-pill-list session-team-card__players" aria-label="Current team players">
       <span
         v-for="player in session.players"
         :key="player.id"
         class="info-pill player-presence-pill"
       >
-        {{ player.name }}<span v-if="currentPlayerId === player.id"> (you)</span>
-        <span v-if="player.isHost"> • host</span>
-        <span v-if="!player.connected"> • offline</span>
-        <span v-else-if="player.isTypingChat"> • typing</span>
-        <span v-else-if="player.editingTarget"> • {{ player.editingTarget }}</span>
+        {{ player.name }}<span v-if="currentPlayerId === player.id"> (me)</span>
       </span>
     </div>
 
     <div class="session-setup-actions">
-      <button class="secondary-button" @click="$emit('copyInvite')">Copy Invite Link</button>
-      <button class="secondary-button" @click="$emit('leave')">Leave Session</button>
-      <button class="primary-button" :disabled="!isHost" @click="$emit('replay')">Replay</button>
+      <button class="secondary-button" @click="$emit('copyInvite')">Copy link</button>
+      <button class="secondary-button" @click="$emit('leave')">Leave Team</button>
+      <button
+        class="primary-button session-team-card__replay"
+        :disabled="!isHost || !canReplay"
+        @click="$emit('replay')"
+      >
+        Replay
+      </button>
     </div>
-
-    <p class="session-invite-copy">{{ inviteLink }}</p>
   </section>
 </template>
 
@@ -38,6 +38,7 @@ defineProps<{
   session: GameSession;
   currentPlayerId: string;
   isHost: boolean;
+  canReplay: boolean;
   inviteLink: string;
   realtimeError: string;
 }>();

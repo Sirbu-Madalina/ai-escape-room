@@ -1,29 +1,12 @@
 <template>
   <div class="crossword-puzzle">
-    <aside class="crossword-puzzle__sidebar">
-      <section class="crossword-puzzle__panel">
-        <p class="logic-board__label">Room Info</p>
-        <p>Find all {{ puzzle.entries.length }} words to unlock the next room.</p>
-      </section>
-
-      <section class="crossword-puzzle__panel">
-        <p class="logic-board__label">How To Play</p>
-        <p>Use the clues and the filled letters. Type one letter in each empty square.</p>
-      </section>
-
-      <section class="crossword-puzzle__panel">
-        <p class="logic-board__label">Progress</p>
-        <strong>{{ solvedEntriesCount }}/{{ puzzle.entries.length }}</strong>
-      </section>
-    </aside>
-
     <section class="crossword-puzzle__stage">
       <section class="crossword-puzzle__board" aria-label="AI crossword grid">
         <div
           class="crossword-puzzle__grid"
           :style="{
-            gridTemplateColumns: `repeat(${gridBounds.cols}, 42px)`,
-            gridTemplateRows: `repeat(${gridBounds.rows}, 42px)`,
+            gridTemplateColumns: `repeat(${gridBounds.cols}, 52px)`,
+            gridTemplateRows: `repeat(${gridBounds.rows}, 52px)`,
           }"
         >
           <div
@@ -42,14 +25,6 @@
               @input="onCellInput(cell, $event)"
             />
           </div>
-        </div>
-      </section>
-
-      <section class="crossword-puzzle__letters">
-        <p class="logic-board__label">Use These Letters</p>
-        <p>Not all letters are used.</p>
-        <div>
-          <span v-for="letter in letterBank" :key="letter">{{ letter }}</span>
         </div>
       </section>
     </section>
@@ -87,11 +62,6 @@
           <p>{{ entry.clue }}</p>
           <small>{{ entry.answer.length }}</small>
         </button>
-      </section>
-
-      <section class="crossword-puzzle__hint-panel">
-        <p class="logic-board__label">Hint</p>
-        <p>Start with a word where two letters are already filled.</p>
       </section>
     </aside>
   </div>
@@ -179,18 +149,6 @@ const isEntrySolved = (entry: CrosswordEntry) => {
     return entry.prefilledIndexes.includes(index) || enteredValue.toLowerCase() === letter.toLowerCase();
   });
 };
-
-const solvedEntriesCount = computed(() => {
-  return props.puzzle.entries.filter((entry) => isEntrySolved(entry)).length;
-});
-
-const letterBank = computed(() => {
-  const answerLetters = props.puzzle.entries
-    .flatMap((entry) => entry.answer.toUpperCase().split(""));
-  const extraLetters = ["A", "E", "I", "L", "N", "O", "R", "S", "T"];
-
-  return [...new Set([...answerLetters, ...extraLetters])].sort();
-});
 
 const onCellInput = (cell: CrosswordCell, event: Event) => {
   const input = event.target as HTMLInputElement;

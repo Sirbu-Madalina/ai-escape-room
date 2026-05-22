@@ -1,28 +1,28 @@
 <template>
   <section class="mission-card session-setup-card">
     <p class="panel-label">Session Access</p>
-    <h2>Play With Friends</h2>
+    <h2>Create / Join Sessions</h2>
     <p class="puzzle-text">
       Solo play is available right away. Use this only if you want to create or join a shared co-op session.
     </p>
 
-    <label class="input-label" for="player-name-input">Display name</label>
+    <label class="input-label" for="player-name-input">Name</label>
     <input
       id="player-name-input"
       :value="playerName"
       type="text"
       maxlength="24"
-      placeholder="Agent name"
+      placeholder="Agent Name"
       @input="onPlayerNameInput"
     />
 
-    <label class="input-label" for="join-code-input">Join code</label>
+    <label class="input-label" for="join-code-input">Join Code</label>
     <input
       id="join-code-input"
       :value="joinCode"
       type="text"
       maxlength="6"
-      placeholder="Optional"
+      placeholder="000 000"
       @input="onJoinCodeInput"
     />
 
@@ -30,11 +30,11 @@
     <p v-if="realtimeError" class="status-message">{{ realtimeError }}</p>
 
     <div class="session-setup-actions">
-      <button class="primary-button" :disabled="sessionLoading" @click="$emit('create')">
-        {{ sessionLoading ? "Working..." : "Create Session" }}
-      </button>
       <button class="ghost-button ghost-button--cyan" :disabled="sessionLoading" @click="$emit('join')">
         Join Session
+      </button>
+      <button class="primary-button" :disabled="sessionLoading" @click="$emit('create')">
+        {{ sessionLoading ? "Working..." : "Create Session" }}
       </button>
     </div>
   </section>

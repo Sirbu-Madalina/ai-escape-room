@@ -1,5 +1,6 @@
 import {
   createFallbackCorruptedDocumentsPuzzle,
+  createCrosswordFromWords,
   createFallbackCrosswordPuzzle,
   createFallbackEmailInvestigationPuzzle,
   createFallbackLogicBoardPuzzle,
@@ -10,6 +11,7 @@ import {
 } from "./openaiService.js";
 import {
   validateCorruptedDocumentsPuzzle,
+  validateCrosswordWordSet,
   validateEmailInvestigationPuzzle,
   validateLogicBoardPuzzle,
   validateRiddlePuzzle,
@@ -47,11 +49,72 @@ export const createCrosswordPuzzle = async ({
   difficulty = "easy",
   theme = "cyber lab",
 }) => {
-  // Curated random puzzles are clearer and more varied than AI-generated
-  // crossword grids, while still being beginner-friendly to maintain.
-  void difficulty;
-  void theme;
-  return createFallbackCrosswordPuzzle();
+  try {
+    const generationSeed = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const parsed = await createStructuredSchemaResponse({
+      instructions: `
+Create one beginner-friendly crossword word set for Room 1 of an AI escape room.
+Theme: ${theme}
+Difficulty: ${difficulty}
+Generation seed: ${generationSeed}
+
+The frontend will place the words into a simple fixed crossword layout, so you only generate words and clues.
+Make it fun, clear, and easy to understand. The player should feel clever, not confused.
+
+Rules:
+- Generate exactly 5 words.
+- Each answer must be 2 to 6 letters.
+- Use common everyday words, light cyber-lab words, or escape-room words.
+- Do not use obscure jargon.
+- Every clue must point clearly to one answer.
+- Avoid vague clues such as "a thing", "something", "might", "maybe", "yummy", or "nice".
+- Clues should be short, direct, and natural.
+- Answers must be lowercase letters only.
+- No duplicate answers.
+`,
+      schemaName: "crossword_word_set",
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          title: { type: "string" },
+          riddle: { type: "string" },
+          hint: { type: "string" },
+          explanation: { type: "string" },
+          words: {
+            type: "array",
+            minItems: 5,
+            maxItems: 5,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                answer: { type: "string" },
+                clue: { type: "string" },
+              },
+              required: ["answer", "clue"],
+            },
+          },
+        },
+        required: ["title", "riddle", "hint", "explanation", "words"],
+      },
+    });
+
+    validateCrosswordWordSet(parsed);
+
+    console.log("AI crossword generated:", parsed.words.map((word) => word.answer).join(", "));
+
+    return {
+      ...createCrosswordFromWords(parsed),
+      generatedBy: "ai",
+    };
+  } catch (error) {
+    console.error("Crossword generation error:", error);
+    return {
+      ...createFallbackCrosswordPuzzle(),
+      generatedBy: "fallback",
+    };
+  }
 };
 
 export const createEmailInvestigationPuzzle = async ({

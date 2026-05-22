@@ -6,6 +6,7 @@ export type IntensityOption = {
   description: string;
   lives: number;
   timeMultiplier: number;
+  timeLimitSeconds: number;
   aiDifficulty: "easy" | "medium" | "hard";
 };
 
@@ -16,6 +17,7 @@ export const intensityOptions: IntensityOption[] = [
     description: "More time and 4 lives.",
     lives: 4,
     timeMultiplier: 1.25,
+    timeLimitSeconds: 20 * 60,
     aiDifficulty: "easy",
   },
   {
@@ -24,6 +26,7 @@ export const intensityOptions: IntensityOption[] = [
     description: "Balanced timers and 3 lives.",
     lives: 3,
     timeMultiplier: 1,
+    timeLimitSeconds: 15 * 60,
     aiDifficulty: "medium",
   },
   {
@@ -32,6 +35,7 @@ export const intensityOptions: IntensityOption[] = [
     description: "Less time and 2 lives.",
     lives: 2,
     timeMultiplier: 0.8,
+    timeLimitSeconds: 10 * 60,
     aiDifficulty: "hard",
   },
 ];

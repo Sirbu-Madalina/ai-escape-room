@@ -31,6 +31,7 @@ export type CrosswordPuzzle = {
   hint: string;
   explanation: string;
   kind: "crossword";
+  generatedBy?: "ai" | "fallback";
   entries: CrosswordEntry[];
   answer: string;
   inputPlaceholder: string;

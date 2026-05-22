@@ -8,96 +8,25 @@
   ></audio>
 
   <main v-if="currentScreen === 'lobby'" class="app-shell lobby-dashboard-shell">
-    <header class="dashboard-hero">
-      <div class="dashboard-hero__copy">
-        <p class="eyebrow">AI Escape Room Experience</p>
-        <h1>MindLock Protocol</h1>
-      </div>
-
-      <div class="dashboard-hero__controls">
-        <MusicControl
-          v-model:volume="musicVolume"
-          :disabled="musicUnavailable"
-          :is-playing="isMusicPlaying"
-          @toggle="toggleMusic"
-          @update:volume="applyMusicVolume"
-        />
-
-        <div class="difficulty-control">
-          <button
-            type="button"
-            class="difficulty-control__button"
-            :class="{ 'difficulty-control__button--open': isDifficultyMenuOpen }"
-            :disabled="Boolean(session)"
-            aria-haspopup="listbox"
-            :aria-expanded="isDifficultyMenuOpen"
-            @click="toggleDifficultyMenu"
-          >
-            <span>{{ selectedIntensityLabel }}</span>
-          </button>
-
-          <div
-            v-if="isDifficultyMenuOpen"
-            class="difficulty-control__menu"
-            role="listbox"
-          >
-            <button
-              v-for="option in intensityOptions"
-              :key="option.id"
-              type="button"
-              class="difficulty-control__option"
-              :class="{ 'difficulty-control__option--selected': selectedIntensity === option.id }"
-              role="option"
-              :aria-selected="selectedIntensity === option.id"
-              @click="chooseIntensity(option.id)"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
-
-        <button class="replay-button" @click="retryRun">
-          Replay
-        </button>
-      </div>
-    </header>
-
-    <section class="dashboard-stats" aria-label="Run status">
-      <article class="dashboard-stat">
-        <span class="status-chip__label">Lives</span>
-        <div class="dashboard-stat__value-row">
-          <strong>{{ lives }}/{{ maxLives }}</strong>
-          <p>{{ selectedIntensityLabel }}</p>
-        </div>
-      </article>
-
-      <article class="dashboard-stat">
-        <span class="status-chip__label">Progress</span>
-        <div class="dashboard-stat__value-row">
-          <strong>{{ clearedRoomsCount }}/{{ rooms.length }}</strong>
-          <p>Rooms</p>
-        </div>
-      </article>
-
-      <article class="dashboard-stat">
-        <span class="status-chip__label">{{ session ? "Session Code" : "Solo-Mode" }}</span>
-        <div class="dashboard-stat__value-row">
-          <strong>{{ session?.joinCode ?? "000000" }}</strong>
-        </div>
-      </article>
-    </section>
+    <FrontPageNav
+      :lives="lives"
+      :max-lives="maxLives"
+      :selected-intensity="selectedIntensity"
+      :selected-intensity-label="selectedIntensityLabel"
+      :intensity-options="intensityOptions"
+      :is-difficulty-menu-open="isDifficultyMenuOpen"
+      :is-session-active="Boolean(session)"
+      :is-music-playing="isMusicPlaying"
+      :music-disabled="musicUnavailable"
+      @toggle-music="toggleMusic"
+      @toggle-difficulty="toggleDifficultyMenu"
+      @choose-intensity="chooseIntensity"
+      @replay="retryRun"
+    />
 
     <section class="dashboard-layout">
       <div class="dashboard-main">
         <section class="dashboard-panel rooms-panel">
-          <div class="dashboard-panel__header">
-            <div>
-              <p class="panel-label">Current Rooms</p>
-              <h2>Current rooms</h2>
-            </div>
-            <span>{{ availableRoomCount }} available</span>
-          </div>
-
           <section class="room-grid" aria-label="Escape rooms">
             <RoomCard
               v-for="room in rooms"
@@ -111,47 +40,43 @@
           </section>
         </section>
 
+      </div>
+
+      <aside class="dashboard-sidebar">
+        <section class="dashboard-panel lobby-session-panel">
+          <SessionAccessPanel
+            v-if="!session"
+            :player-name="playerName"
+            :join-code="joinCodeInput"
+            :session-loading="sessionLoading"
+            :session-error="sessionError"
+            :realtime-error="realtimeError"
+            @update:player-name="playerName = $event"
+            @update:join-code="joinCodeInput = $event"
+            @create="createSharedSession"
+            @join="joinSession"
+          />
+
+          <SessionLobbyPanel
+            v-else
+            :session="session"
+            :current-player-id="currentPlayer?.id ?? ''"
+            :is-host="isHost"
+            :can-replay="session.gameState.clearedRoomIds.length >= session.gameState.rooms.length"
+            :invite-link="inviteLink"
+            :realtime-error="realtimeError"
+            @replay="retryRun"
+            @leave="leaveSession"
+            @copy-invite="copyInviteLink"
+          />
+        </section>
+
         <SessionChatPanel
-          v-if="session"
           :session="session"
           :realtime-error="realtimeError"
           :chat-input="chatInput"
           @update:chat-input="setChatInputValue"
           @send="sendChatMessage"
-        />
-      </div>
-
-      <aside class="dashboard-sidebar">
-        <div class="dashboard-panel__header dashboard-panel__header--compact">
-          <div>
-            <p class="panel-label">{{ session ? "Current Team" : "Current Play With Friends" }}</p>
-            <h2>{{ session ? "Current team" : "Current play with friends" }}</h2>
-          </div>
-        </div>
-
-        <SessionAccessPanel
-          v-if="!session"
-          :player-name="playerName"
-          :join-code="joinCodeInput"
-          :session-loading="sessionLoading"
-          :session-error="sessionError"
-          :realtime-error="realtimeError"
-          @update:player-name="playerName = $event"
-          @update:join-code="joinCodeInput = $event"
-          @create="createSharedSession"
-          @join="joinSession"
-        />
-
-        <SessionLobbyPanel
-          v-else
-          :session="session"
-          :current-player-id="currentPlayer?.id ?? ''"
-          :is-host="isHost"
-          :invite-link="inviteLink"
-          :realtime-error="realtimeError"
-          @replay="retryRun"
-          @leave="leaveSession"
-          @copy-invite="copyInviteLink"
         />
       </aside>
     </section>
@@ -162,67 +87,55 @@
     class="mission-shell"
     :class="`mission-shell--${selectedRoom.themeClass}`"
   >
+    <RoomNav
+      :subtitle="selectedRoom.subtitle"
+      :room-number="selectedRoom.id"
+      :time-remaining="formattedTime"
+      :lives="lives"
+      :max-lives="maxLives"
+      :hint-disabled="!activePuzzle || hintUsed"
+      :answer-disabled="!activePuzzle || answerUsed || roomCleared"
+      :exit-disabled="Boolean(session && !isHost)"
+      :is-music-playing="isMusicPlaying"
+      :music-disabled="musicUnavailable"
+      @hint="useHint"
+      @answer="useAnswerReveal"
+      @exit="exitRoom"
+      @toggle-music="toggleMusic"
+    />
+
     <section class="mission-frame" :class="`mission-frame--${selectedRoom.themeClass}`">
-      <header class="mission-topbar">
-        <div>
-          <p class="mission-subtitle">{{ selectedRoom.subtitle }}</p>
-          <h1>{{ selectedRoom.title }}</h1>
-        </div>
+      <section class="mission-room-layout">
+        <SessionChatPanel
+          class="mission-room-chat"
+          :session="session"
+          :realtime-error="realtimeError"
+          :chat-input="chatInput"
+          @update:chat-input="setChatInputValue"
+          @send="sendChatMessage"
+        />
 
-        <div class="mission-actions">
-          <MusicControl
-            v-if="selectedRoom.id === 2"
-            v-model:volume="musicVolume"
-            class="music-control--mission"
-            :disabled="musicUnavailable"
-            :is-playing="isMusicPlaying"
-            @toggle="toggleMusic"
-            @update:volume="applyMusicVolume"
-          />
-
-          <button
-            class="primary-button mission-exit-button"
-            :class="`primary-button--${selectedRoom.themeClass}`"
-            :disabled="Boolean(session && !isHost)"
-            @click="exitRoom"
-          >
-            Exit room
-          </button>
-
-          <button
-            class="ghost-button mission-hint-button"
-            :class="`ghost-button--${selectedRoom.themeClass}`"
-            :disabled="!activePuzzle || hintUsed"
-            @click="useHint"
-          >
-            Show hint
-          </button>
-          <button
-            class="ghost-button mission-answer-button"
-            :class="`ghost-button--${selectedRoom.themeClass}`"
-            :disabled="!activePuzzle || answerUsed || roomCleared"
-            @click="useAnswerReveal"
-          >
-            Get answer
-          </button>
-          <div class="info-pill">
-            <span aria-hidden="true">♡</span>
-            <span>{{ lives }}/{{ maxLives }}</span>
-          </div>
-        </div>
-      </header>
-
-      <section class="mission-card">
-        <p class="panel-label">Mission</p>
+        <section class="mission-card mission-puzzle-card">
+          <p class="panel-label">Mission</p>
 
         <template v-if="loading">
-          <h2>Generating your puzzle...</h2>
-          <p class="puzzle-text">
-            The system is preparing a challenge for {{ selectedRoom.title }}.
-          </p>
+          <section class="puzzle-loading-state">
+            <span aria-hidden="true"></span>
+            <h2>Generating your puzzle...</h2>
+            <p>
+              AI is creating fresh words and clues for {{ selectedRoom.title }}.
+            </p>
+          </section>
         </template>
 
         <template v-else-if="activePuzzle">
+          <p
+            v-if="activePuzzle.kind === 'crossword'"
+            class="puzzle-source-badge"
+            :class="`puzzle-source-badge--${activePuzzle.generatedBy ?? 'fallback'}`"
+          >
+            {{ activePuzzle.generatedBy === "ai" ? "Generated by AI" : "Fallback puzzle" }}
+          </p>
           <h2>{{ activePuzzle.title }}</h2>
           <p class="puzzle-text">{{ activePuzzle.riddle }}</p>
 
@@ -302,67 +215,40 @@
             Explanation: {{ activePuzzle.explanation }}
           </p>
 
-          <div class="mission-footer">
-            <div class="timer-pill">
-              <span class="timer-ring" aria-hidden="true"></span>
-              <span>{{ formattedTime }}</span>
-            </div>
+          <button
+            v-if="roomCleared && nextUnlockedRoomId"
+            class="mission-submit-inline"
+            :disabled="Boolean(session && !isHost)"
+            @click="goToNextRoom"
+          >
+            Go to {{ nextRoomTitle }}
+          </button>
 
-            <button
-              v-if="roomCleared && nextUnlockedRoomId"
-              class="primary-button mission-submit"
-              :class="`primary-button--${selectedRoom.themeClass}`"
-              :disabled="Boolean(session && !isHost)"
-              @click="goToNextRoom"
-            >
-              Go to {{ nextRoomTitle }}
-            </button>
+          <button
+            v-else-if="roomCleared"
+            class="mission-submit-inline"
+            :disabled="Boolean(session && !isHost)"
+            @click="returnToLobby"
+          >
+            Back to Lobby
+          </button>
 
-            <button
-              v-else-if="roomCleared"
-              class="primary-button mission-submit"
-              :class="`primary-button--${selectedRoom.themeClass}`"
-              :disabled="Boolean(session && !isHost)"
-              @click="returnToLobby"
-            >
-              Back to Lobby
-            </button>
-
-            <template v-else>
-              <button
-                class="primary-button mission-submit"
-                :class="`primary-button--${selectedRoom.themeClass}`"
-                :disabled="loading"
-                @click="checkAnswer"
-              >
-                Submit answer
-              </button>
-
-              <button
-                v-if="lives === 0"
-                class="danger-button mission-submit mission-submit--secondary"
-                :disabled="Boolean(session && !isHost)"
-                @click="triggerGameOver"
-              >
-                Give up
-              </button>
-            </template>
-          </div>
+          <button
+            v-else
+            class="mission-submit-inline"
+            :disabled="loading"
+            @click="checkAnswer"
+          >
+            Submit answer
+          </button>
         </template>
 
         <template v-else>
           <h2>Unable to load the puzzle</h2>
           <p class="puzzle-text">{{ message }}</p>
         </template>
+        </section>
       </section>
-
-      <SessionChatPanel
-        :session="session"
-        :realtime-error="realtimeError"
-        :chat-input="chatInput"
-        @update:chat-input="setChatInputValue"
-        @send="sendChatMessage"
-      />
     </section>
   </main>
 
@@ -385,7 +271,8 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onBeforeUnmount, onMounted } from "vue";
-import MusicControl from "./components/MusicControl.vue";
+import FrontPageNav from "./components/FrontPageNav.vue";
+import RoomNav from "./components/RoomNav.vue";
 import RoomCard from "./components/RoomCard.vue";
 import SessionAccessPanel from "./components/SessionAccessPanel.vue";
 import SessionChatPanel from "./components/SessionChatPanel.vue";
@@ -428,7 +315,6 @@ const {
   emitRoomStart,
   emitRoomExit,
   emitRestart,
-  emitGiveUp,
   emitHint,
   emitReveal,
   emitSubmitAnswer,
@@ -476,7 +362,6 @@ const {
   clearedRoomIds,
   roomCleared,
   selectedRoom,
-  clearedRoomsCount,
   nextUnlockedRoomId,
   nextRoomTitle,
   logicBoardAnswerLabel,
@@ -493,10 +378,6 @@ const {
 
 const selectedIntensityLabel = computed(() => {
   return intensityOptions.find((option) => option.id === selectedIntensity.value)?.label ?? "Medium";
-});
-
-const availableRoomCount = computed(() => {
-  return rooms.value.filter((room) => room.unlocked).length;
 });
 
 const createSharedSession = () => {
@@ -700,21 +581,6 @@ const returnToLobby = () => {
 
 const exitRoom = () => {
   returnToLobby();
-};
-
-const triggerGameOver = () => {
-  if (session.value) {
-    if (!isHost.value) {
-      return;
-    }
-
-    emitGiveUp();
-    return;
-  }
-
-  stopTimer();
-  currentScreen.value = "game-over";
-  resetRoomUi();
 };
 
 const startOver = () => {

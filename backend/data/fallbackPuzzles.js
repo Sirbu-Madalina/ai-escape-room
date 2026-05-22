@@ -40,7 +40,7 @@ const prefillIndexesForWord = (word) => {
   return [0, Math.min(word.length - 1, 2)];
 };
 
-const createCrosswordFromWords = ({ title, riddle, hint, explanation, words }) => {
+export const createCrosswordFromWords = ({ title, riddle, hint, explanation, words }) => {
   const entries = words.map((word, index) => ({
     ...crosswordLayout[index],
     clue: word.clue,
