@@ -1421,6 +1421,7 @@ input:focus {
 .corrupted-documents__document {
   min-width: 0;
   padding: 22px;
+  overflow-x: hidden;
 }
 
 .corrupted-documents__document-header {
@@ -1445,7 +1446,10 @@ input:focus {
   min-height: 300px;
   margin-top: 22px;
   padding: 20px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
   border-radius: 8px;
   color: rgba(235, 241, 252, 0.86);
   border: 1px solid rgba(135, 148, 180, 0.12);
@@ -4102,7 +4106,8 @@ input:focus {
 .mission-frame--pink .corrupted-documents__recovery {
   min-height: 620px;
   max-height: 620px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 0;
   border-radius: 10px;
   background: rgba(12, 16, 26, 0.98);
@@ -4134,6 +4139,10 @@ input:focus {
 .mission-frame--pink .corrupted-documents__document pre {
   min-height: 330px;
   max-height: 350px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
   background:
     repeating-linear-gradient(
       180deg,

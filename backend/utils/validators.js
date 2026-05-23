@@ -262,16 +262,11 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
     throw new Error("Invalid corrupted documents payload: documents must have length 3");
   }
 
-  const allowedCommandPhrases = new Set([
-    "open the vault",
-    "trace the source",
-    "reset main lock",
-    "find safe code",
-    "unlock red door",
-    "light the core",
-    "close the gate",
-    "start main power",
-  ]);
+  const allowedCommandWords = {
+    actions: ["open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair"],
+    middle: ["main", "red", "safe", "lost", "dark", "old", "north"],
+    targets: ["vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel"],
+  };
 
   const abstractWords = [
     "consequent",
@@ -289,7 +284,7 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
     const corruptedText = document.corruptedText;
     const hiddenClue = document.hiddenClue.trim().toLowerCase();
 
-    if (!corruptedText.includes("TASK:") || !corruptedText.includes("CORRUPTED LINE:")) {
+    if (!corruptedText.includes("OBJECTIVE:") || !corruptedText.includes("CORRUPTED LINE:")) {
       return false;
     }
 
@@ -365,7 +360,12 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
   const normalizedFragments = value.documents.map((document) => document.hiddenClue.trim().toLowerCase());
   const normalizedAnswer = normalizedAnswerWords.join(" ");
 
-  if (!allowedCommandPhrases.has(normalizedAnswer)) {
+  if (
+    normalizedAnswerWords.length !== 3 ||
+    !allowedCommandWords.actions.includes(normalizedAnswerWords[0]) ||
+    !allowedCommandWords.middle.includes(normalizedAnswerWords[1]) ||
+    !allowedCommandWords.targets.includes(normalizedAnswerWords[2])
+  ) {
     throw new Error("Invalid corrupted documents payload: answer must be a clear command phrase");
   }
 

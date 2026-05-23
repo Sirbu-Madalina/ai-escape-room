@@ -424,16 +424,17 @@ Make the statements feel like clear clues in a game.
   }
 };
 
-const corruptedCommandPhrases = [
-  "open the vault",
-  "trace the source",
-  "reset main lock",
-  "find safe code",
-  "unlock red door",
-  "light the core",
-  "close the gate",
-  "start main power",
-];
+const corruptedCommandWords = {
+  actions: ["open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair"],
+  middle: ["main", "red", "safe", "lost", "dark", "old", "north"],
+  targets: ["vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel"],
+};
+
+let recentCorruptedAnswers = [];
+
+const rememberCorruptedAnswer = (answer) => {
+  recentCorruptedAnswers = [...recentCorruptedAnswers, answer.toLowerCase()].slice(-10);
+};
 
 const addSymbolsBetweenLetters = (word) => {
   const symbols = ["@@", "##", "!!", "%%", "^^", "**"];
@@ -452,9 +453,26 @@ const hideOneLetter = (word) => {
   return letters.join("");
 };
 
-const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation, answer }) => {
+const applyTokenToStoryLine = (storyLine, token) => {
+  if (storyLine.includes("{TOKEN}")) {
+    return storyLine.replace("{TOKEN}", token);
+  }
+
+  return `${storyLine} ${token}`;
+};
+
+const cleanDocumentTitle = (title, fallbackTitle) => {
+  const cleanedTitle = title?.replace(/\{TOKEN\}/g, "").replace(/\s+/g, " ").trim();
+  return cleanedTitle || fallbackTitle;
+};
+
+const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation, answer, documents = [] }) => {
   const words = answer.trim().toLowerCase().split(/\s+/);
   const [firstWord, secondWord, thirdWord] = words;
+  const [firstDoc = {}, secondDoc = {}, thirdDoc = {}] = documents;
+  const firstToken = hideOneLetter(firstWord);
+  const secondToken = secondWord.toUpperCase();
+  const thirdToken = addSymbolsBetweenLetters(thirdWord);
 
   return {
     title,
@@ -465,33 +483,33 @@ const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation,
     documents: [
       {
         id: "doc-1",
-        title: "Access_Directive.tmp",
-        classification: "DAMAGED / 42%",
+        title: cleanDocumentTitle(firstDoc.title, "Access_Directive.tmp"),
+        classification: firstDoc.classification || "DAMAGED / 42%",
         puzzleType: "missing-letters",
-        corruptedText: `TASK: Recover word 1.\nCORRUPTED LINE: The first command word is ${hideOneLetter(firstWord)}.\nNOTE: One letter is missing. Repair the word before moving on.`,
-        clue: "Fill the missing letter to recover the first command word.",
+        corruptedText: `OBJECTIVE: Restore the action token.\nCORRUPTED LINE: ${applyTokenToStoryLine(firstDoc.storyLine || "Door control rejected token {TOKEN} during the night reset.", firstToken)}\nTRACE: One character was erased from the token.`,
+        clue: "Repair the damaged token by restoring the missing letter.",
         hiddenClue: firstWord.toUpperCase(),
         clueLabel: "Word 1",
         orderHint: "Word 1 starts the command.",
       },
       {
         id: "doc-2",
-        title: "Middle_Key.redacted",
-        classification: "CONFIDENTIAL / 35%",
+        title: cleanDocumentTitle(secondDoc.title, "Middle_Key.redacted"),
+        classification: secondDoc.classification || "CONFIDENTIAL / 35%",
         puzzleType: "hidden-word",
-        corruptedText: `TASK: Recover word 2.\nCORRUPTED LINE: System note says repair ${secondWord.toUpperCase()} corrupted command before midnight.\nNOTE: Only one full uppercase word is useful.`,
-        clue: "Find the complete uppercase word hidden in the sentence.",
+        corruptedText: `OBJECTIVE: Extract the routing word.\nCORRUPTED LINE: ${applyTokenToStoryLine(secondDoc.storyLine || "Archive memo says reroute {TOKEN} broken signal before lockdown.", secondToken)}\nTRACE: Ignore normal text. One uppercase word survived.`,
+        clue: "Find the complete uppercase word hidden in the line.",
         hiddenClue: secondWord.toUpperCase(),
         clueLabel: "Word 2",
         orderHint: "Word 2 is the middle word.",
       },
       {
         id: "doc-3",
-        title: "Final_Target.glitch",
-        classification: "RESTRICTED / 28%",
+        title: cleanDocumentTitle(thirdDoc.title, "Final_Target.glitch"),
+        classification: thirdDoc.classification || "RESTRICTED / 28%",
         puzzleType: "remove-symbols",
-        corruptedText: `TASK: Recover word 3.\nCORRUPTED LINE: Final target reads ${addSymbolsBetweenLetters(thirdWord)}.\nNOTE: Symbols were injected between the real letters.`,
-        clue: "Remove every symbol. Keep only the letters.",
+        corruptedText: `OBJECTIVE: Clean the target token.\nCORRUPTED LINE: ${applyTokenToStoryLine(thirdDoc.storyLine || "Final target was logged as {TOKEN} after the archive surge.", thirdToken)}\nTRACE: Noise symbols were injected between real letters.`,
+        clue: "Remove the noise symbols and keep the letters in order.",
         hiddenClue: thirdWord.toUpperCase(),
         clueLabel: "Word 3",
         orderHint: "Word 3 closes the command.",
@@ -517,26 +535,27 @@ Theme: ${theme}
 Difficulty: ${difficulty}
 Generation seed: ${Date.now()}-${Math.random().toString(16).slice(2)}
 Attempt: ${attempt}
+Recently used commands, do not repeat them: ${recentCorruptedAnswers.join(", ") || "none"}
 
-The backend will build the actual corrupted documents from your command phrase.
-You only choose the command phrase and write short story text.
+You choose a three-word command phrase and write short document flavor text.
+The backend will corrupt the command words and keep the puzzle rules fair.
 
-The final answer must be one clear three-word command phrase.
-Choose exactly one command phrase from this list:
-- OPEN THE VAULT
-- TRACE THE SOURCE
-- RESET MAIN LOCK
-- FIND SAFE CODE
-- UNLOCK RED DOOR
-- LIGHT THE CORE
-- CLOSE THE GATE
-- START MAIN POWER
+Build the answer from exactly one word from each list:
+- First word/action: ${corruptedCommandWords.actions.join(", ")}
+- Middle word: ${corruptedCommandWords.middle.join(", ")}
+- Third word/target: ${corruptedCommandWords.targets.join(", ")}
 
 Rules:
 - Return the answer in lowercase.
+- The answer must have exactly 3 words.
+- Do not repeat a recently used command.
 - Keep title, riddle, hint, and explanation short and player-friendly.
-- Do not include document data. The backend creates the documents.
 - The explanation should explain that the three repaired words form the command phrase.
+- Create exactly 3 document story lines.
+- Each document storyLine must include the literal placeholder {TOKEN} exactly once.
+- Document titles must never include {TOKEN}.
+- Do not reveal the solved word in title, storyLine, hint, riddle, or explanation.
+- Make storyLine atmospheric but short, like a damaged archive log.
 `,
       schemaName: "corrupted_documents_puzzle",
       schema: {
@@ -548,8 +567,23 @@ Rules:
           hint: { type: "string" },
           explanation: { type: "string" },
           answer: { type: "string" },
+          documents: {
+            type: "array",
+            minItems: 3,
+            maxItems: 3,
+            items: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                title: { type: "string" },
+                classification: { type: "string" },
+                storyLine: { type: "string" },
+              },
+              required: ["title", "classification", "storyLine"],
+            },
+          },
         },
-        required: ["title", "riddle", "hint", "explanation", "answer"],
+        required: ["title", "riddle", "hint", "explanation", "answer", "documents"],
       },
     });
 
@@ -558,7 +592,14 @@ Rules:
       answer: parsed.answer.trim().toLowerCase(),
     });
 
+    if (recentCorruptedAnswers.includes(puzzle.answer)) {
+      throw new Error(`Corrupted documents repeated recent command: ${puzzle.answer}`);
+    }
+
     validateCorruptedDocumentsPuzzle(puzzle);
+    rememberCorruptedAnswer(puzzle.answer);
+
+    console.log("AI corrupted documents generated:", puzzle.answer);
 
     return puzzle;
   } catch (error) {
