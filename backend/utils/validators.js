@@ -263,9 +263,21 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
   }
 
   const allowedCommandWords = {
-    actions: ["open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair"],
-    middle: ["main", "red", "safe", "lost", "dark", "old", "north"],
-    targets: ["vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel"],
+    actions: [
+      "open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair",
+      "wake", "call", "push", "send", "run", "drop", "ping", "stop", "copy", "link",
+      "boot", "flip", "load", "sync", "read", "swap", "pull", "type", "mark", "save",
+    ],
+    middle: [
+      "main", "red", "safe", "lost", "dark", "old", "north",
+      "blue", "last", "deep", "cold", "fast", "back", "top", "mid",
+      "gold", "flat", "wild", "tiny", "big", "side", "raw", "slim",
+    ],
+    targets: [
+      "vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel",
+      "disk", "node", "port", "beam", "wire", "chip", "relay", "drive", "unit", "clock",
+      "frame", "link", "port", "grid", "path", "ring", "pipe", "band", "wave", "shell",
+    ],
   };
 
   const abstractWords = [
