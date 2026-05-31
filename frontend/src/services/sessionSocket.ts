@@ -12,6 +12,7 @@ export type SessionSocketHandlers = {
   onChatMessage?: (message: GameSession["chatMessages"][number]) => void;
   onError?: (message: string) => void;
   onLeft?: () => void;
+  onWrongAnswer?: () => void;
 };
 
 export const connectSessionSocket = ({
@@ -46,6 +47,12 @@ export const connectSessionSocket = ({
   if (handlers.onLeft) {
     socket.on("session:left", () => {
       handlers.onLeft?.();
+    });
+  }
+
+  if (handlers.onWrongAnswer) {
+    socket.on("session:wrong-answer", () => {
+      handlers.onWrongAnswer?.();
     });
   }
 

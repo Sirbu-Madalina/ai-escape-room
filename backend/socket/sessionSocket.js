@@ -154,6 +154,10 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
+      const sessionBeforeSubmit = await getSessionById(sessionId);
+      const previousWrongAnswerEventId =
+        sessionBeforeSubmit?.gameState?.wrongAnswerEventId ?? 0;
+
       const result = await submitAnswerSession({
         sessionId,
         answerPayload,
@@ -161,6 +165,13 @@ export const registerSessionSocket = (io) => {
 
       if (result.session) {
         io.to(sessionId).emit("session:state", result.session);
+
+        const nextWrongAnswerEventId = result.session.gameState?.wrongAnswerEventId ?? 0;
+        if (nextWrongAnswerEventId > previousWrongAnswerEventId) {
+          io.to(sessionId).emit("session:wrong-answer", {
+            eventId: nextWrongAnswerEventId,
+          });
+        }
       }
 
       if (result.error) {

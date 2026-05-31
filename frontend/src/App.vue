@@ -355,6 +355,11 @@ const {
   disconnectRealtime,
 } = useSession({
   onSessionState: gameplay.syncLocalStateFromSession,
+  onWrongAnswer: () => {
+    if (gameplay.currentScreen.value === "room") {
+      showWrongAnswerPopup();
+    }
+  },
   onSessionLeft: () => {
     gameplay.resetRoomUi();
     gameplay.resetRoomActions();

@@ -23,9 +23,11 @@ type StoredSessionIdentity = {
 export const useSession = ({
   onSessionState,
   onSessionLeft,
+  onWrongAnswer,
 }: {
   onSessionState: (session: GameSession) => void;
   onSessionLeft: () => void;
+  onWrongAnswer?: () => void;
 }) => {
   const playerName = ref("");
   const joinCodeInput = ref("");
@@ -122,6 +124,7 @@ export const useSession = ({
         onLeft: () => {
           clearLocalSession();
         },
+        onWrongAnswer,
       },
     });
 
