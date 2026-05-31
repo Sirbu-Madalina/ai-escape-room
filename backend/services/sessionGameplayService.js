@@ -89,6 +89,18 @@ const loadPuzzleForSelectedRoom = async (session, statusText) => {
 };
 
 const handleFailedAttempt = async (session, failureMessage) => {
+  if (session.gameState.lives <= 0) {
+    session.gameState.gameOverEventId = (session.gameState.gameOverEventId ?? 0) + 1;
+    session.gameState.currentScreen = "game-over";
+    session.gameState.loading = false;
+    session.gameState.message = "You lost all your lives. Start over from Room 1.";
+    session.gameState.showHint = false;
+    session.gameState.showAnswerText = false;
+    session.gameState.showExplanation = false;
+    touchSession(session);
+    return;
+  }
+
   session.gameState.lives = Math.max(session.gameState.lives - 1, 0);
   session.gameState.wrongAnswerEventId = (session.gameState.wrongAnswerEventId ?? 0) + 1;
   session.gameState.showHint = false;

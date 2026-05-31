@@ -38,6 +38,7 @@ export const createInitialGameState = (intensity = "medium") => {
     activePuzzle: null,
     puzzleInstanceId: 0,
     wrongAnswerEventId: 0,
+    gameOverEventId: 0,
     textAnswerDraft: "",
     emailSearchDraft: "",
     emailSelectedId: "",

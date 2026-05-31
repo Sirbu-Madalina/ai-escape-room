@@ -292,6 +292,21 @@
         <button type="button" @click="closeWrongAnswerPopup">Try again</button>
       </section>
     </div>
+
+    <div
+      v-if="outOfLivesPopupOpen"
+      class="wrong-answer-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="out-of-lives-title"
+    >
+      <section class="wrong-answer-modal__card">
+        <p class="wrong-answer-modal__eyebrow">Game over</p>
+        <h2 id="out-of-lives-title">You lost all your lives</h2>
+        <p>You have to start over from Room 1.</p>
+        <button type="button" @click="startOver">Start over</button>
+      </section>
+    </div>
   </Teleport>
 </template>
 
@@ -320,7 +335,9 @@ const musicUnavailable = ref(false);
 const musicVolume = ref(0.35);
 const isDifficultyMenuOpen = ref(false);
 const wrongAnswerPopupOpen = ref(false);
+const outOfLivesPopupOpen = ref(false);
 const lastSeenWrongAnswerEventId = ref<number | null>(null);
+const lastSeenGameOverEventId = ref<number | null>(null);
 
 const gameplay = useGameplay();
 const {
@@ -361,6 +378,8 @@ const {
     }
   },
   onSessionLeft: () => {
+    closeWrongAnswerPopup();
+    closeOutOfLivesPopup();
     gameplay.resetRoomUi();
     gameplay.resetRoomActions();
     gameplay.currentScreen.value = "lobby";
@@ -393,6 +412,7 @@ const {
   showExplanation,
   lives,
   wrongAnswerEventId,
+  gameOverEventId,
   clearedRoomIds,
   roomCleared,
   selectedRoom,
@@ -551,7 +571,23 @@ const closeWrongAnswerPopup = () => {
   wrongAnswerPopupOpen.value = false;
 };
 
+const showOutOfLivesPopup = () => {
+  wrongAnswerPopupOpen.value = false;
+  outOfLivesPopupOpen.value = true;
+};
+
+const closeOutOfLivesPopup = () => {
+  outOfLivesPopupOpen.value = false;
+};
+
 const handleFailedAttempt = async (failureMessage: string) => {
+  if (lives.value <= 0) {
+    currentScreen.value = "game-over";
+    message.value = "You lost all your lives. Start over from Room 1.";
+    showOutOfLivesPopup();
+    return;
+  }
+
   if (!failureMessage.toLowerCase().includes("time is up")) {
     showWrongAnswerPopup();
   }
@@ -582,6 +618,7 @@ const handleSolvedRoom = () => {
 
 const startRoom = (roomId: number) => {
   closeWrongAnswerPopup();
+  closeOutOfLivesPopup();
 
   if (session.value) {
     resetRoomActions();
@@ -628,6 +665,9 @@ const exitRoom = () => {
 };
 
 const startOver = () => {
+  closeWrongAnswerPopup();
+  closeOutOfLivesPopup();
+
   if (session.value) {
     if (!isHost.value) {
       return;
@@ -834,6 +874,20 @@ watch(wrongAnswerEventId, (nextEventId) => {
   }
 
   lastSeenWrongAnswerEventId.value = nextEventId;
+}, { immediate: true });
+
+watch(gameOverEventId, (nextEventId) => {
+  const previousEventId = lastSeenGameOverEventId.value;
+
+  if (
+    session.value &&
+    previousEventId !== null &&
+    nextEventId > previousEventId
+  ) {
+    showOutOfLivesPopup();
+  }
+
+  lastSeenGameOverEventId.value = nextEventId;
 }, { immediate: true });
 
 watch([currentScreen, roomCleared], ([nextScreen, isRoomCleared]) => {
