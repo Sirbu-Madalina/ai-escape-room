@@ -68,11 +68,14 @@ export const registerSessionSocket = (io) => {
       io.to(sessionId).emit("session:state", result.session);
     });
 
-    socket.on("session:leave", async () => {
+    socket.on("session:leave", async (acknowledge) => {
       const sessionId = socket.data.sessionId;
       const playerId = socket.data.playerId;
 
       if (!sessionId || !playerId) {
+        if (typeof acknowledge === "function") {
+          acknowledge({ ok: false });
+        }
         return;
       }
 
@@ -82,6 +85,9 @@ export const registerSessionSocket = (io) => {
         socket.emit("session:error", {
           message: result.error,
         });
+        if (typeof acknowledge === "function") {
+          acknowledge({ ok: false, error: result.error });
+        }
         return;
       }
 
@@ -89,6 +95,9 @@ export const registerSessionSocket = (io) => {
       socket.emit("session:left", {
         sessionId,
       });
+      if (typeof acknowledge === "function") {
+        acknowledge({ ok: true });
+      }
 
       if (result?.session) {
         io.to(sessionId).emit("session:state", result.session);

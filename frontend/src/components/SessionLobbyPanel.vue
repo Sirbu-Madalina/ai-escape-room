@@ -18,7 +18,7 @@
     </div>
 
     <div class="session-setup-actions">
-      <button class="secondary-button" @click="$emit('copyInvite')">Copy link</button>
+      <button class="secondary-button" @click="$emit('copy-invite')">Copy link</button>
       <button class="secondary-button" @click="$emit('leave')">Leave Team</button>
       <button
         class="primary-button session-team-card__replay"
@@ -46,6 +46,6 @@ defineProps<{
 defineEmits<{
   replay: [];
   leave: [];
-  copyInvite: [];
+  "copy-invite": [];
 }>();
 </script>

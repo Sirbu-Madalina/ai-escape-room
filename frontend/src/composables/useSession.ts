@@ -248,7 +248,34 @@ export const useSession = ({
       return;
     }
 
-    await navigator.clipboard.writeText(inviteLink.value);
+    try {
+      await navigator.clipboard.writeText(inviteLink.value);
+      realtimeError.value = "Invite link copied.";
+    } catch {
+      const textArea = document.createElement("textarea");
+      textArea.value = inviteLink.value;
+      textArea.setAttribute("readonly", "");
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      realtimeError.value = "Invite link copied.";
+    }
+  };
+
+  const leaveSession = () => {
+    if (!sessionSocket) {
+      clearLocalSession();
+      return;
+    }
+
+    const socket = sessionSocket;
+
+    socket.timeout(1500).emit("session:leave", () => {
+      clearLocalSession();
+    });
   };
 
   return {
@@ -292,6 +319,6 @@ export const useSession = ({
     emitDraftLogic: (selection: string) => sessionSocket?.emit("draft:logic-board", { selection }),
     emitDraftCrossword: (draft: Record<string, string>) => sessionSocket?.emit("draft:crossword", { draft }),
     emitEditingPresence: (editingTarget: string) => sessionSocket?.emit("presence:editing", { editingTarget }),
-    leaveSession: () => sessionSocket?.emit("session:leave"),
+    leaveSession,
   };
 };
