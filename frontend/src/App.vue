@@ -826,7 +826,7 @@ watch([lives, message], ([nextLives, nextMessage]) => {
   const previousLives = lastSeenLives.value;
 
   if (
-    session.value &&
+    !session.value &&
     currentScreen.value === "room" &&
     previousLives !== null &&
     nextLives < previousLives &&
