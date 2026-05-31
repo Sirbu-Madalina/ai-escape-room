@@ -92,21 +92,36 @@ export const validateCrosswordWordSet = (value) => {
     "anything",
   ];
 
-  const hasValidWords = value.words.every((item) => {
+  const getInvalidWordReason = (item, index) => {
     if (
       typeof item?.answer !== "string" ||
-      typeof item?.clue !== "string" ||
-      !/^[a-z]{2,6}$/i.test(item.answer)
+      typeof item?.clue !== "string"
     ) {
-      return false;
+      return `word ${index + 1} is missing answer or clue`;
+    }
+
+    if (!/^[a-z]{2,6}$/i.test(item.answer)) {
+      return `word ${index + 1} has invalid answer "${item.answer}"`;
     }
 
     const clue = item.clue.toLowerCase();
-    return !vagueClueWords.some((word) => clue.includes(word));
-  });
+    const vagueWord = vagueClueWords.find((word) =>
+      new RegExp(`\\b${word}\\b`, "i").test(clue)
+    );
 
-  if (!hasValidWords) {
-    throw new Error("Invalid crossword word set: malformed or vague word");
+    if (vagueWord) {
+      return `word ${index + 1} has vague clue word "${vagueWord}"`;
+    }
+
+    return null;
+  };
+
+  const invalidReason = value.words
+    .map((item, index) => getInvalidWordReason(item, index))
+    .find(Boolean);
+
+  if (invalidReason) {
+    throw new Error(`Invalid crossword word set: ${invalidReason}`);
   }
 };
 

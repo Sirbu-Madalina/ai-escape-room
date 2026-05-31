@@ -133,6 +133,21 @@ const hasRepeatedCrosswordAnswers = (words) => {
   return answers.some((answer) => blockedWords.has(answer));
 };
 
+const normalizeCrosswordWordSet = (wordSet) => ({
+  ...wordSet,
+  words: Array.isArray(wordSet?.words)
+    ? wordSet.words.map((word) => ({
+        ...word,
+        answer: typeof word?.answer === "string"
+          ? word.answer.trim().toLowerCase().replace(/[^a-z]/g, "")
+          : word?.answer,
+        clue: typeof word?.clue === "string"
+          ? word.clue.trim().replace(/\s+/g, " ")
+          : word?.clue,
+      }))
+    : wordSet?.words,
+});
+
 export const createCrosswordPuzzle = async ({
   difficulty = "easy",
   theme = "cyber lab",
@@ -146,7 +161,7 @@ export const createCrosswordPuzzle = async ({
     const forbiddenWords = [...overusedCrosswordWords, ...recentCrosswordAnswers]
       .slice(-28)
       .join(", ");
-    const parsed = await createStructuredSchemaResponse({
+    const parsed = normalizeCrosswordWordSet(await createStructuredSchemaResponse({
       instructions: `
 Create one beginner-friendly crossword word set for Room 1 of an AI escape room.
 Main room theme: ${theme}
@@ -204,7 +219,7 @@ Rules:
         },
         required: ["title", "riddle", "hint", "explanation", "words"],
       },
-    });
+    }));
 
     validateCrosswordWordSet(parsed);
 
