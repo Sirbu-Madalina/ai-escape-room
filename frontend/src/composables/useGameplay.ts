@@ -23,7 +23,8 @@ type AiPuzzle = TextPuzzle & {
 type Puzzle = AiPuzzle | CrosswordPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle | CorruptedDocumentsPuzzle;
 type Screen = "lobby" | "room" | "game-over";
 
-const API_BASE_URL = "http://localhost:5001/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
 
 export const useGameplay = () => {
   const selectedIntensity = ref<IntensityLevel>(DEFAULT_INTENSITY);

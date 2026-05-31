@@ -8,7 +8,8 @@ import type {
 import type { IntensityLevel } from "../data/intensity";
 import type { Room } from "../data/rooms";
 
-const API_BASE_URL = "http://localhost:5001/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api";
 
 export type SessionPuzzle = TextPuzzle | CrosswordPuzzle | EmailInvestigationPuzzle | LogicBoardPuzzle | CorruptedDocumentsPuzzle;
 
