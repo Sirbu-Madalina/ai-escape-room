@@ -16,13 +16,17 @@ export const markPlayerConnection = async ({ sessionId, playerId, connected }) =
   const session = await getSessionRecordOrLoad(sessionId);
 
   if (!session) {
-    return null;
+    return {
+      error: "Realtime session not found. Check that the Socket.IO URL points to the same backend as the API.",
+    };
   }
 
   const player = findPlayerInSession(session, playerId);
 
   if (!player) {
-    return null;
+    return {
+      error: "Realtime player not found. Refresh or rejoin the team to create a fresh player identity.",
+    };
   }
 
   if (connected) {
@@ -41,7 +45,9 @@ export const markPlayerConnection = async ({ sessionId, playerId, connected }) =
   touchSession(session);
   await saveSessionRecord(session);
 
-  return sanitizeSession(session);
+  return {
+    session: sanitizeSession(session),
+  };
 };
 
 export const leaveSession = async ({ sessionId, playerId }) => {

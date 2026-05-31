@@ -22,15 +22,15 @@ const MAX_CHAT_LENGTH = 240;
 export const registerSessionSocket = (io) => {
   io.on("connection", (socket) => {
     socket.on("session:join", async ({ sessionId, playerId }) => {
-      const session = await markPlayerConnection({
+      const result = await markPlayerConnection({
         sessionId,
         playerId,
         connected: true,
       });
 
-      if (!session) {
+      if (result?.error || !result?.session) {
         socket.emit("session:error", {
-          message: "Unable to join realtime session.",
+          message: result?.error ?? "Unable to join realtime session.",
         });
         return;
       }
@@ -39,7 +39,7 @@ export const registerSessionSocket = (io) => {
       socket.data.playerId = playerId;
       socket.join(sessionId);
 
-      io.to(sessionId).emit("session:state", session);
+      io.to(sessionId).emit("session:state", result.session);
     });
 
     socket.on("chat:send", async ({ text }) => {
@@ -391,14 +391,14 @@ export const registerSessionSocket = (io) => {
         return;
       }
 
-      const session = await markPlayerConnection({
+      const result = await markPlayerConnection({
         sessionId,
         playerId,
         connected: false,
       });
 
-      if (session) {
-        io.to(sessionId).emit("session:state", session);
+      if (result?.session) {
+        io.to(sessionId).emit("session:state", result.session);
       }
     });
   });
