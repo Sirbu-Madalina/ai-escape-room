@@ -183,6 +183,20 @@ export const validateEmailInvestigationPuzzle = (value) => {
   }
 
   const normalizedAnswer = value.answer.trim().toLowerCase();
+  const hasLetter = /[a-z]/i.test(normalizedAnswer);
+  const hasNumber = /\d/.test(normalizedAnswer);
+
+  if (!hasLetter || !hasNumber) {
+    throw new Error("Invalid email investigation payload: answer must mix letters and numbers");
+  }
+
+  const overusedCodePieces = ["dc", "d7", "7b", "b7", "gl", "ar", "nx", "au"];
+  const repeatedPiece = overusedCodePieces.find((piece) => normalizedAnswer.includes(piece));
+
+  if (repeatedPiece) {
+    throw new Error(`Invalid email investigation payload: answer uses overused code piece ${repeatedPiece}`);
+  }
+
   const looksLikeCodePiece = (text) => /^[a-z0-9]{1,4}$/i.test(text.trim());
   const normalizePiece = (text) => text.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
   const potentialCluePattern = /potential clue:\s*([a-z0-9]+)/i;

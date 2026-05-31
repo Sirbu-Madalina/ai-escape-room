@@ -264,14 +264,57 @@ const emailScenarios = [
   { company: "Professor Chaos Research Inc.", context: "a research lab where the lead scientist accidentally turned the printer into a portal" },
 ];
 
+const emailCodeStyles = [
+  "two-letter project tag + two-digit incident number + one final approval letter, such as QN42R",
+  "one color initial + three-digit locker number + one shift marker, such as V318K",
+  "three-letter device fragment + one floor digit + one checksum letter, such as ROV6M",
+  "one approval letter + two-digit shelf number + two-letter archive tag, such as H27ZX",
+  "two-letter department tag + one batch digit + two-letter courier mark, such as PX8LM",
+  "one server letter + two-letter window code + two-digit ticket number, such as NQA73",
+];
+
+const overusedEmailCodePieces = [
+  "dc",
+  "d7",
+  "7b",
+  "b7",
+  "gl",
+  "ar",
+  "nx",
+  "au",
+];
+
+let recentEmailAnswers = [];
+
+const rememberEmailAnswer = (answer) => {
+  recentEmailAnswers = [...recentEmailAnswers, answer.toLowerCase()].slice(-12);
+};
+
+const hasRepeatedEmailCode = (answer) => {
+  const normalizedAnswer = answer.toLowerCase();
+
+  return recentEmailAnswers.includes(normalizedAnswer) ||
+    overusedEmailCodePieces.some((piece) => normalizedAnswer.includes(piece));
+};
+
+const normalizeEmailPuzzle = (puzzle) => ({
+  ...puzzle,
+  answer: typeof puzzle?.answer === "string"
+    ? puzzle.answer.trim().replace(/[^a-z0-9]/gi, "").toLowerCase()
+    : puzzle?.answer,
+});
+
 export const createEmailInvestigationPuzzle = async ({
   difficulty = "medium",
   theme = "suspicious company inbox",
 }) => {
   const scenario = emailScenarios[Math.floor(Math.random() * emailScenarios.length)];
+  let lastError = null;
 
-  try {
-    const parsed = await createStructuredSchemaResponse({
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+    const codeStyle = emailCodeStyles[Math.floor(Math.random() * emailCodeStyles.length)];
+    const parsed = normalizeEmailPuzzle(await createStructuredSchemaResponse({
       instructions: `
 Create one email investigation puzzle for an AI escape room.
 Company: ${scenario.company}
@@ -279,6 +322,10 @@ Scenario: ${scenario.context}
 Base theme: ${theme}
 Difficulty: ${difficulty}
 ${difficultyGuide[difficulty] || difficultyGuide.medium}
+Generation seed: ${Date.now()}-${Math.random().toString(16).slice(2)}
+Attempt: ${attempt}
+Required code style for this generation: ${codeStyle}
+Recently used final codes, do not repeat: ${recentEmailAnswers.join(", ") || "none"}
 
 Tone: Be playful and funny. Lean into the absurd scenario. Employee names, email subjects, and company policies should feel like they belong in a comedy. The puzzle logic must still be fair and solvable, but it should make the player laugh while they work it out.
 
@@ -287,6 +334,9 @@ The puzzle must be solvable by reading clues in the emails and employee profile.
 Do not make the answer simply a birthday. The final code must require combining 3 or 4 separate clues.
 Do not write the full answer in any email, clue summary, placeholder, title, or explanation until the final explanation.
 The answer must be 4 to 7 characters using only letters and numbers. No spaces, no hyphens, no punctuation.
+The answer must contain at least one letter and at least one number.
+Do not use or include these tired code pieces: DC, D7, 7B, B7, GL, AR, NX, AU.
+Do not use the same code pattern as the recently used final codes.
 
 Core game logic:
 - The final code is built only from useful code pieces.
@@ -300,16 +350,17 @@ The player should collect pieces and placement rules from different emails.
 Make the placement feel like workplace instructions, not abstract riddles.
 
 Good clue style:
-- "Potential clue: A" in clueSummary, while the email body says: "After the document review, add signature A at the end."
-- "Potential clue: 5" in clueSummary, while the email body says: "The incident number goes in the middle slot."
-- "Potential clue: DC" in clueSummary, while the email body says: "Department codes always start emergency override codes."
-- "Potential clue: B7" in clueSummary, while the profile says it is a badge suffix and another email says suffixes close the code.
+- "Potential clue: QN" in clueSummary, while the email body says: "The Quasar-Nova project tag QN starts this emergency code."
+- "Potential clue: 42" in clueSummary, while the email body says: "Incident 42 is typed after the project tag."
+- "Potential clue: R" in clueSummary, while the email body says: "Supervisor Rook signs temporary codes with R at the end."
+- "Potential clue: V318" in clueSummary, while the body says: "Violet locker 318 is copied as V318 before the final marker."
 
 Bad clue style:
 - "Shift Marker" without saying which letter/number it gives.
 - "Could hint at a numerical position."
 - "ADV-4-A" with separators in the answer.
 - "Potential clue: X123" when the final answer is "ENG37B".
+- Any answer beginning with DC or ending with 7B.
 
 Every clue email must reveal one useful piece AND explain where that piece belongs:
 - first/start/opening/prefix
@@ -317,13 +368,14 @@ Every clue email must reveal one useful piece AND explain where that piece belon
 - final/end/closing/signature/suffix
 Do not split a piece and its placement rule into different clue emails.
 For example, do not write only "department code goes first" in one email and reveal "DC" somewhere else.
-Instead write: "The department code is DC. Department codes always start emergency override codes."
-Every clue email body must contain at least one concrete code piece such as "DC", "7", "B7", or "A".
+Instead write: "The project tag is QN. Project tags always start emergency override codes."
+Every clue email body must contain at least one concrete code piece such as "QN", "42", "R", "V318", or "ZX".
 Use one of these patterns, or invent a similar one:
-- project prefix + lab number + shift marker
-- employee badge suffix + archive shelf + color keyword
-- department code + incident number + approval initial
-- server name fragment + floor number + backup window
+- project tag + incident number + approval initial
+- color initial + locker number + shift marker
+- device fragment + floor digit + checksum letter
+- approval initial + shelf number + archive tag
+- server letter + backup-window code + ticket number
 
 The employee profile may contain one clue, but never the whole answer.
 Write 5 to 6 emails. Include 3 clue emails, 1 suspicious misdirection or warning, and 1 harmless noise email.
@@ -413,11 +465,17 @@ The inputPlaceholder must not contain an example code.
         },
         required: ["title", "riddle", "hint", "explanation", "employeeProfile", "clues", "emails", "answer"],
       },
-    });
+    }));
 
     validateEmailInvestigationPuzzle(parsed);
 
-    console.log("AI email investigation generated:", parsed.title);
+    if (hasRepeatedEmailCode(parsed.answer)) {
+      throw new Error(`Email investigation repeated an overused code: ${parsed.answer}`);
+    }
+
+    rememberEmailAnswer(parsed.answer);
+
+    console.log("AI email investigation generated:", parsed.title, parsed.answer);
 
     return {
       ...parsed,
@@ -426,12 +484,16 @@ The inputPlaceholder must not contain an example code.
       generatedBy: "ai",
     };
   } catch (error) {
-    console.error("Email investigation generation error:", error);
-    return {
-      ...createFallbackEmailInvestigationPuzzle(),
-      generatedBy: "fallback",
-    };
+      lastError = error;
+      console.error(`Email investigation generation attempt ${attempt} failed:`, error);
+    }
   }
+
+  console.error("Email investigation generation error:", lastError);
+  return {
+    ...createFallbackEmailInvestigationPuzzle(),
+    generatedBy: "fallback",
+  };
 };
 
 const logicBoardScenarios = [
