@@ -17,15 +17,46 @@ import {
   validateRiddlePuzzle,
 } from "../utils/validators.js";
 
+const riddleScenarios = [
+  "a clumsy robot who keeps dropping the keys",
+  "a time-traveling librarian stuck in the wrong century",
+  "a haunted vending machine that dispenses riddles instead of snacks",
+  "a very forgetful wizard who lost his spell book",
+  "a space pirate who hid treasure in the wrong galaxy",
+  "a detective cat who solves crimes by napping on clues",
+  "a sentient toaster that became self-aware and now asks questions",
+  "a confused scientist who mixed up the labels on everything",
+  "a ghost that only speaks in bad puns",
+  "a penguin working as a secret agent in the Arctic",
+  "a dragon who is terrible at riddles but keeps trying",
+  "a bakery where the bread is actually encrypted messages",
+  "a submarine crew that communicates only through emoji",
+  "a museum where all the exhibits escaped overnight",
+  "a chef who accidentally cooked a forbidden recipe",
+];
+
+const difficultyGuide = {
+  easy: "EASY means: the answer is almost obvious from the clue. A 10-year-old should solve it in under 30 seconds. No wordplay required — the answer is a common everyday word and the clue points directly at it.",
+  medium: "MEDIUM means: the player needs to think for a moment but the answer is fair. One small twist or wordplay is allowed, but the answer should feel satisfying, not frustrating.",
+  hard: "HARD means: the player must think laterally. A clever twist or double meaning is expected, but the answer must still be logically reachable — no guessing required.",
+};
+
 export const createRiddlePuzzle = async ({
   difficulty = "easy",
   theme = "cyber lab",
 }) => {
+  const scenario = riddleScenarios[Math.floor(Math.random() * riddleScenarios.length)];
+
   return generateStructuredJson({
     instructions: `
-Create one short escape-room puzzle.
-Theme: ${theme}
+Create one short, funny escape-room riddle puzzle.
+Setting: ${scenario}
+Room theme: ${theme}
 Difficulty: ${difficulty}
+${difficultyGuide[difficulty] || difficultyGuide.easy}
+
+Tone: Be playful and funny. Use the absurd setting to make the player smile. A light pun or silly twist is encouraged.
+The riddle should feel like it belongs in this specific scenario — not a generic puzzle with the scenario bolted on.
 
 Return only JSON:
 {
@@ -38,7 +69,8 @@ Return only JSON:
 
 Rules:
 - Keep the puzzle concise and solvable
-- Keep the answer short
+- Keep the answer short (1–2 words max)
+- The answer must be a common word
 - No markdown
 `,
     validate: validateRiddlePuzzle,
@@ -58,6 +90,17 @@ const crosswordThemes = [
   "office desk items",
   "lab safety objects",
   "everyday city places",
+  "circus performer gear",
+  "beach objects",
+  "camping trip supplies",
+  "bakery items",
+  "pirate gear",
+  "zoo animal features",
+  "detective coat items",
+  "sports equipment",
+  "cozy cabin objects",
+  "playground equipment",
+  "wizard bag items",
 ];
 
 const overusedCrosswordWords = [
@@ -109,12 +152,13 @@ Create one beginner-friendly crossword word set for Room 1 of an AI escape room.
 Main room theme: ${theme}
 Puzzle mini-theme for this generation: ${selectedTheme}
 Difficulty: ${difficulty}
+${difficultyGuide[difficulty] || difficultyGuide.easy}
 Generation seed: ${generationSeed}
 Attempt: ${attempt}
 Forbidden answers for this generation: ${forbiddenWords || "none"}
 
 The frontend will place the words into a simple fixed crossword layout, so you only generate words and clues.
-Make it fun, clear, and easy to understand. The player should feel clever, not confused.
+Tone: Be playful and a little funny. Write clues with personality — a light pun, a silly scenario, or an unexpected angle is welcome. Make the player smile when they figure it out.
 
 Rules:
 - Generate exactly 5 words.
@@ -127,11 +171,11 @@ Rules:
 - Avoid using several words from the same previous puzzle pattern.
 - Every clue must point clearly to one answer.
 - Avoid vague clues such as "a thing", "something", "might", "maybe", "yummy", or "nice".
-- Clues should be short, direct, and natural.
+- Clues can be playful or funny, but must still clearly lead to one answer.
 - Answers must be lowercase letters only.
 - No duplicate answers.
 - Prefer concrete nouns or simple actions players can picture.
-- Good clue style: "Tool used to eat soup." -> spoon.
+- Good clue style: "What a cat knocks off the table at 3am." -> cup.
 - Bad clue style: "Program instructions." -> code.
 `,
       schemaName: "crossword_word_set",
@@ -190,16 +234,38 @@ Rules:
   };
 };
 
+const emailScenarios = [
+  { company: "Galactic Snacks Inc.", context: "a space-age junk food company whose vending machine AI has gone rogue" },
+  { company: "Haunted Realty LLC", context: "a real estate agency that accidentally listed a haunted house and is now covering it up" },
+  { company: "Pets & Plots Detective Agency", context: "a detective agency run entirely by cats who are trying to look professional" },
+  { company: "Dungeon Deliveries Co.", context: "a medieval delivery service that somehow survived into the modern era" },
+  { company: "Atlantis Aquatics Ltd.", context: "an underwater research lab where something very unusual was discovered last Tuesday" },
+  { company: "Robots R Us HR Dept", context: "an HR department staffed by robots who are terrible at pretending to be human" },
+  { company: "Penguin Logistics AB", context: "a logistics company where all the employees are penguins trying to unionize" },
+  { company: "Wizard's Tech Support", context: "a help desk that handles both software bugs and accidental curse activations" },
+  { company: "Neon Bakery Labs", context: "a futuristic bakery that secretly doubles as a data encryption facility" },
+  { company: "Moonbase Catering", context: "a catering company on a lunar base where someone ate the wrong labeled container" },
+  { company: "Time Capsule Couriers", context: "a courier service that delivers packages through time and has mixed up some orders" },
+  { company: "Professor Chaos Research Inc.", context: "a research lab where the lead scientist accidentally turned the printer into a portal" },
+];
+
 export const createEmailInvestigationPuzzle = async ({
   difficulty = "medium",
   theme = "suspicious company inbox",
 }) => {
+  const scenario = emailScenarios[Math.floor(Math.random() * emailScenarios.length)];
+
   try {
     const parsed = await createStructuredSchemaResponse({
       instructions: `
 Create one email investigation puzzle for an AI escape room.
-Theme: ${theme}
+Company: ${scenario.company}
+Scenario: ${scenario.context}
+Base theme: ${theme}
 Difficulty: ${difficulty}
+${difficultyGuide[difficulty] || difficultyGuide.medium}
+
+Tone: Be playful and funny. Lean into the absurd scenario. Employee names, email subjects, and company policies should feel like they belong in a comedy. The puzzle logic must still be fair and solvable, but it should make the player laugh while they work it out.
 
 The player sees a suspicious company inbox with a search bar, opens emails, and discovers an override code.
 The puzzle must be solvable by reading clues in the emails and employee profile.
@@ -353,22 +419,42 @@ The inputPlaceholder must not contain an example code.
   }
 };
 
+const logicBoardScenarios = [
+  "three malfunctioning robots, only one is telling the truth",
+  "three vending machines, only one still has snacks",
+  "three suspicious office interns, only one actually did their work",
+  "three doors labeled by aliens who barely speak English",
+  "three escaped lab experiments trying to look innocent",
+  "three time travelers who all claim to be from the right era",
+  "three pirate ships, only one has the real treasure map",
+  "three haunted laptops, only one is safe to open",
+  "three chefs who all claim they didn't burn the evidence",
+  "three portals, only one leads somewhere useful",
+  "three clones of the same scientist, only one remembers the password",
+  "three cats at a crime scene, only one is the witness",
+];
+
 export const createLogicBoardPuzzle = async ({
   difficulty = "hard",
   theme = "neon grid",
 }) => {
+  const scenario = logicBoardScenarios[Math.floor(Math.random() * logicBoardScenarios.length)];
+
   try {
     const parsed = await createStructuredSchemaResponse({
       instructions: `
 Create one logic-board puzzle for a cyber escape room.
-Theme: ${theme}
+Scenario: ${scenario}
+Room theme: ${theme}
 Difficulty: ${difficulty}
+${difficultyGuide[difficulty] || difficultyGuide.hard}
 
-Make the puzzle solvable by logic, not guessing.
-The player must read exactly 3 short statements and choose the correct terminal.
-Use plain, beginner-friendly language.
-Avoid abstract technical jargon.
-Make the statements feel like clear clues in a game.
+Tone: Be playful and funny. The scenario should feel silly and fun, not dry. The 3 statements should have personality — they can reference the absurd scenario. But the logic must be airtight: after reading all 3 statements, only one option can be correct.
+
+Make the puzzle solvable by logic alone — not guessing.
+The player reads exactly 3 short statements and chooses the correct terminal (alpha, beta, or gamma).
+Use plain, beginner-friendly language. No abstract jargon.
+Each statement should eliminate at least one wrong option or confirm the right one.
 `,
       schemaName: "logic_board_puzzle",
       schema: {
@@ -425,9 +511,21 @@ Make the statements feel like clear clues in a game.
 };
 
 const corruptedCommandWords = {
-  actions: ["open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair"],
-  middle: ["main", "red", "safe", "lost", "dark", "old", "north"],
-  targets: ["vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel"],
+  actions: [
+    "open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair",
+    "wake", "call", "push", "send", "run", "drop", "ping", "stop", "copy", "link",
+    "boot", "flip", "load", "sync", "read", "swap", "pull", "type", "mark", "save",
+  ],
+  middle: [
+    "main", "red", "safe", "lost", "dark", "old", "north",
+    "blue", "last", "deep", "cold", "fast", "back", "top", "mid",
+    "gold", "flat", "wild", "tiny", "big", "side", "raw", "slim",
+  ],
+  targets: [
+    "vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel",
+    "disk", "node", "port", "beam", "wire", "chip", "relay", "drive", "unit", "clock",
+    "frame", "link", "port", "grid", "path", "ring", "pipe", "band", "wave", "shell",
+  ],
 };
 
 let recentCorruptedAnswers = [];
@@ -520,10 +618,26 @@ const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation,
   };
 };
 
+const corruptedDocumentScenarios = [
+  "a space station's disaster recovery log from a coffee-related incident",
+  "a medieval wizard's guild that switched to computers last week",
+  "a time-travel agency's incident report from a very confused Tuesday",
+  "a robot uprising that was called off due to a scheduling conflict",
+  "a haunted office building where the ghost keeps editing the files",
+  "an AI escape room that accidentally locked itself in",
+  "a pirate crew's attempt to digitize their treasure map archive",
+  "a penguin research base whose lead scientist has gone rogue",
+  "a bakery whose sourdough starter gained sentience and sent threatening emails",
+  "a museum after all the exhibits decided to switch places overnight",
+  "a secret spy agency that forgot to renew their secret-keeping subscription",
+  "a quantum physics lab where someone sneezed during an experiment",
+];
+
 export const createCorruptedDocumentsPuzzle = async ({
   difficulty = "hard",
   theme = "corrupted document archive",
 }) => {
+  const scenario = corruptedDocumentScenarios[Math.floor(Math.random() * corruptedDocumentScenarios.length)];
   let lastError = null;
 
   for (let attempt = 1; attempt <= 3; attempt += 1) {
@@ -531,11 +645,15 @@ export const createCorruptedDocumentsPuzzle = async ({
     const parsed = await createStructuredSchemaResponse({
       instructions: `
 Create the story wrapper for one corrupted-documents puzzle in an AI escape room.
-Theme: ${theme}
+Archive scenario: ${scenario}
+Base theme: ${theme}
 Difficulty: ${difficulty}
+${difficultyGuide[difficulty] || difficultyGuide.hard}
 Generation seed: ${Date.now()}-${Math.random().toString(16).slice(2)}
 Attempt: ${attempt}
 Recently used commands, do not repeat them: ${recentCorruptedAnswers.join(", ") || "none"}
+
+Tone: Be playful and funny. The archive documents should feel like they belong in the scenario — include funny author names, absurd classification labels, and dramatic-but-silly log entries. The player should chuckle while they decode.
 
 You choose a three-word command phrase and write short document flavor text.
 The backend will corrupt the command words and keep the puzzle rules fair.
@@ -555,7 +673,7 @@ Rules:
 - Each document storyLine must include the literal placeholder {TOKEN} exactly once.
 - Document titles must never include {TOKEN}.
 - Do not reveal the solved word in title, storyLine, hint, riddle, or explanation.
-- Make storyLine atmospheric but short, like a damaged archive log.
+- Make storyLine atmospheric and funny — like a damaged archive log written by someone who is stressed and slightly unhinged.
 `,
       schemaName: "corrupted_documents_puzzle",
       schema: {
