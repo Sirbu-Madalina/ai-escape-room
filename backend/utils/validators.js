@@ -279,19 +279,22 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
 
   const allowedCommandWords = {
     actions: [
-      "open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair",
-      "wake", "call", "push", "send", "run", "drop", "ping", "stop", "copy", "link",
-      "boot", "flip", "load", "sync", "read", "swap", "pull", "type", "mark", "save",
+      "align", "archive", "bypass", "calibrate", "charge", "decode", "divert", "eject",
+      "encrypt", "filter", "freeze", "ignite", "isolate", "launch", "locate", "mirror",
+      "override", "purge", "reroute", "restore", "rotate", "seal", "stabilize", "summon",
+      "sync", "translate", "unmask", "vent",
     ],
     middle: [
-      "main", "red", "safe", "lost", "dark", "old", "north",
-      "blue", "last", "deep", "cold", "fast", "back", "top", "mid",
-      "gold", "flat", "wild", "tiny", "big", "side", "raw", "slim",
+      "amber", "archive", "backup", "broken", "central", "cipher", "crimson", "delta",
+      "eclipse", "frozen", "hidden", "inner", "lunar", "mirror", "neon", "north",
+      "outer", "prime", "quiet", "rogue", "second", "silent", "solar", "static",
+      "violet", "zero",
     ],
     targets: [
-      "vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel",
-      "disk", "node", "port", "beam", "wire", "chip", "relay", "drive", "unit", "clock",
-      "frame", "link", "port", "grid", "path", "ring", "pipe", "band", "wave", "shell",
+      "antenna", "beacon", "console", "engine", "filter", "gateway", "ledger", "lens",
+      "magnet", "memory", "mirror", "orbit", "portal", "reactor", "receiver", "satellite",
+      "scanner", "sequence", "signal", "stabilizer", "switch", "terminal", "transmitter",
+      "turbine",
     ],
   };
 
@@ -365,7 +368,7 @@ export const validateCorruptedDocumentsPuzzle = (value) => {
       throw new Error(`Invalid corrupted documents payload: empty document ${documentNumber}`);
     }
 
-    if (!/^[a-z]{2,7}$/i.test(document.hiddenClue.trim())) {
+    if (!/^[a-z]{2,11}$/i.test(document.hiddenClue.trim())) {
       throw new Error(`Invalid corrupted documents payload: unclear recovered word in document ${documentNumber}`);
     }
 

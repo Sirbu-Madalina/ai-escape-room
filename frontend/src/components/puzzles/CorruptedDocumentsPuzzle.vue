@@ -36,7 +36,7 @@
       <p class="logic-board__label">Recovery Console</p>
       <div class="corrupted-documents__brief">
         <strong>Goal</strong>
-        <p>Repair each corrupted line, recover one word, then type the three-word command.</p>
+        <p>Recover the three fragments and assemble the command from the file trail.</p>
       </div>
       <ul>
         <li v-for="document in puzzle.documents" :key="document.id">

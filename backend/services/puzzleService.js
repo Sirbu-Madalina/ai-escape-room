@@ -527,19 +527,22 @@ Each statement should eliminate at least one wrong option or confirm the right o
 
 const corruptedCommandWords = {
   actions: [
-    "open", "trace", "reset", "find", "unlock", "light", "close", "start", "scan", "repair",
-    "wake", "call", "push", "send", "run", "drop", "ping", "stop", "copy", "link",
-    "boot", "flip", "load", "sync", "read", "swap", "pull", "type", "mark", "save",
+    "align", "archive", "bypass", "calibrate", "charge", "decode", "divert", "eject",
+    "encrypt", "filter", "freeze", "ignite", "isolate", "launch", "locate", "mirror",
+    "override", "purge", "reroute", "restore", "rotate", "seal", "stabilize", "summon",
+    "sync", "translate", "unmask", "vent",
   ],
   middle: [
-    "main", "red", "safe", "lost", "dark", "old", "north",
-    "blue", "last", "deep", "cold", "fast", "back", "top", "mid",
-    "gold", "flat", "wild", "tiny", "big", "side", "raw", "slim",
+    "amber", "archive", "backup", "broken", "central", "cipher", "crimson", "delta",
+    "eclipse", "frozen", "hidden", "inner", "lunar", "mirror", "neon", "north",
+    "outer", "prime", "quiet", "rogue", "second", "silent", "solar", "static",
+    "violet", "zero",
   ],
   targets: [
-    "vault", "source", "lock", "code", "door", "core", "gate", "power", "signal", "panel",
-    "disk", "node", "port", "beam", "wire", "chip", "relay", "drive", "unit", "clock",
-    "frame", "link", "port", "grid", "path", "ring", "pipe", "band", "wave", "shell",
+    "antenna", "beacon", "console", "engine", "filter", "gateway", "ledger", "lens",
+    "magnet", "memory", "mirror", "orbit", "portal", "reactor", "receiver", "satellite",
+    "scanner", "sequence", "signal", "stabilizer", "switch", "terminal", "transmitter",
+    "turbine",
   ],
 };
 
@@ -566,6 +569,62 @@ const hideOneLetter = (word) => {
   return letters.join("");
 };
 
+const reverseWord = (word) => word.toLowerCase().split("").reverse().join("");
+
+const hideWordInCapitals = (word) => {
+  const filler = ["damp", "late", "minor", "odd", "static", "thin", "weird"];
+
+  return word
+    .toUpperCase()
+    .split("")
+    .map((letter, index) => `${filler[index % filler.length]}${letter}`)
+    .join(" ");
+};
+
+const documentPuzzleTypes = [
+  {
+    puzzleType: "missing-letters",
+    buildToken: hideOneLetter,
+    trace: "One character was erased from a critical token.",
+    clue: "The damaged token still has its outline. Restore the missing character.",
+  },
+  {
+    puzzleType: "hidden-word",
+    buildToken: (word) => word.toUpperCase(),
+    trace: "A complete uppercase token survived inside the noise.",
+    clue: "One clean uppercase word does not belong to the sentence around it.",
+  },
+  {
+    puzzleType: "reverse-word",
+    buildToken: reverseWord,
+    trace: "A token was written backwards during the archive crash.",
+    clue: "The suspicious fragment reads correctly only from the other direction.",
+  },
+  {
+    puzzleType: "remove-symbols",
+    buildToken: addSymbolsBetweenLetters,
+    trace: "Noise symbols were injected between the real letters.",
+    clue: "Ignore the symbols and keep the letters in the order they appear.",
+  },
+  {
+    puzzleType: "capital-letters",
+    buildToken: hideWordInCapitals,
+    trace: "The token leaked through a chain of capital letters.",
+    clue: "The loud letters are carrying the useful message.",
+  },
+];
+
+const pickDocumentPuzzleTypes = () => {
+  const shuffled = [...documentPuzzleTypes];
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled.slice(0, 3);
+};
+
 const applyTokenToStoryLine = (storyLine, token) => {
   if (storyLine.includes("{TOKEN}")) {
     return storyLine.replace("{TOKEN}", token);
@@ -581,11 +640,20 @@ const cleanDocumentTitle = (title, fallbackTitle) => {
 
 const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation, answer, documents = [] }) => {
   const words = answer.trim().toLowerCase().split(/\s+/);
-  const [firstWord, secondWord, thirdWord] = words;
-  const [firstDoc = {}, secondDoc = {}, thirdDoc = {}] = documents;
-  const firstToken = hideOneLetter(firstWord);
-  const secondToken = secondWord.toUpperCase();
-  const thirdToken = addSymbolsBetweenLetters(thirdWord);
+  const selectedPuzzleTypes = pickDocumentPuzzleTypes();
+  const fallbackTitles = ["Access_Directive.tmp", "Middle_Key.redacted", "Final_Target.glitch"];
+  const fallbackClassifications = ["DAMAGED / 42%", "CONFIDENTIAL / 35%", "RESTRICTED / 28%"];
+  const fallbackStoryLines = [
+    "Door control rejected token {TOKEN} during the night reset.",
+    "Archive memo says reroute {TOKEN} through the broken checkpoint.",
+    "Final target was logged as {TOKEN} after the archive surge.",
+  ];
+  const clueLabels = ["Fragment A", "Fragment B", "Fragment C"];
+  const orderHints = [
+    "Earliest timestamp in the incident chain.",
+    "Routing fragment from the middle log.",
+    "Final authorization fragment.",
+  ];
 
   return {
     title,
@@ -593,41 +661,23 @@ const createCorruptedDocumentsFromCommand = ({ title, riddle, hint, explanation,
     hint,
     explanation,
     kind: "corrupted-documents",
-    documents: [
-      {
-        id: "doc-1",
-        title: cleanDocumentTitle(firstDoc.title, "Access_Directive.tmp"),
-        classification: firstDoc.classification || "DAMAGED / 42%",
-        puzzleType: "missing-letters",
-        corruptedText: `OBJECTIVE: Restore the action token.\nCORRUPTED LINE: ${applyTokenToStoryLine(firstDoc.storyLine || "Door control rejected token {TOKEN} during the night reset.", firstToken)}\nTRACE: One character was erased from the token.`,
-        clue: "Repair the damaged token by restoring the missing letter.",
-        hiddenClue: firstWord.toUpperCase(),
-        clueLabel: "Word 1",
-        orderHint: "Word 1 starts the command.",
-      },
-      {
-        id: "doc-2",
-        title: cleanDocumentTitle(secondDoc.title, "Middle_Key.redacted"),
-        classification: secondDoc.classification || "CONFIDENTIAL / 35%",
-        puzzleType: "hidden-word",
-        corruptedText: `OBJECTIVE: Extract the routing word.\nCORRUPTED LINE: ${applyTokenToStoryLine(secondDoc.storyLine || "Archive memo says reroute {TOKEN} broken signal before lockdown.", secondToken)}\nTRACE: Ignore normal text. One uppercase word survived.`,
-        clue: "Find the complete uppercase word hidden in the line.",
-        hiddenClue: secondWord.toUpperCase(),
-        clueLabel: "Word 2",
-        orderHint: "Word 2 is the middle word.",
-      },
-      {
-        id: "doc-3",
-        title: cleanDocumentTitle(thirdDoc.title, "Final_Target.glitch"),
-        classification: thirdDoc.classification || "RESTRICTED / 28%",
-        puzzleType: "remove-symbols",
-        corruptedText: `OBJECTIVE: Clean the target token.\nCORRUPTED LINE: ${applyTokenToStoryLine(thirdDoc.storyLine || "Final target was logged as {TOKEN} after the archive surge.", thirdToken)}\nTRACE: Noise symbols were injected between real letters.`,
-        clue: "Remove the noise symbols and keep the letters in order.",
-        hiddenClue: thirdWord.toUpperCase(),
-        clueLabel: "Word 3",
-        orderHint: "Word 3 closes the command.",
-      },
-    ],
+    documents: words.map((word, index) => {
+      const document = documents[index] ?? {};
+      const puzzleType = selectedPuzzleTypes[index];
+      const token = puzzleType.buildToken(word);
+
+      return {
+        id: `doc-${index + 1}`,
+        title: cleanDocumentTitle(document.title, fallbackTitles[index]),
+        classification: document.classification || fallbackClassifications[index],
+        puzzleType: puzzleType.puzzleType,
+        corruptedText: `OBJECTIVE: Recover fragment ${String.fromCharCode(65 + index)} from the damaged record.\nCORRUPTED LINE: ${applyTokenToStoryLine(document.storyLine || fallbackStoryLines[index], token)}\nTRACE: ${puzzleType.trace}`,
+        clue: puzzleType.clue,
+        hiddenClue: word.toUpperCase(),
+        clueLabel: clueLabels[index],
+        orderHint: orderHints[index],
+      };
+    }),
     answer,
     inputPlaceholder: "Enter recovered phrase",
   };
@@ -681,9 +731,12 @@ Build the answer from exactly one word from each list:
 Rules:
 - Return the answer in lowercase.
 - The answer must have exactly 3 words.
+- Prefer unusual, specific combinations over generic lock words.
+- Do not use tired targets like vault, door, code, or lock.
 - Do not repeat a recently used command.
-- Keep title, riddle, hint, and explanation short and player-friendly.
-- The explanation should explain that the three repaired words form the command phrase.
+- Keep title, riddle, hint, and explanation short, atmospheric, and player-friendly.
+- The hint should nudge players toward comparing the traces, not explain the solution order directly.
+- The explanation should mention the recovered fragments without sounding like a tutorial.
 - Create exactly 3 document story lines.
 - Each document storyLine must include the literal placeholder {TOKEN} exactly once.
 - Document titles must never include {TOKEN}.
@@ -734,7 +787,10 @@ Rules:
 
     console.log("AI corrupted documents generated:", puzzle.answer);
 
-    return puzzle;
+    return {
+      ...puzzle,
+      generatedBy: "ai",
+    };
   } catch (error) {
       lastError = error;
       console.error(`Corrupted documents generation attempt ${attempt} failed:`, error);
@@ -742,7 +798,10 @@ Rules:
   }
 
   console.error("Corrupted documents generation error:", lastError);
-  return createFallbackCorruptedDocumentsPuzzle();
+  return {
+    ...createFallbackCorruptedDocumentsPuzzle(),
+    generatedBy: "fallback",
+  };
 };
 
 export const createPuzzleForRoom = async (room) => {

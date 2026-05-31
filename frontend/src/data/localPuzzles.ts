@@ -66,6 +66,7 @@ export type CorruptedDocumentsPuzzle = {
   hint: string;
   explanation: string;
   kind: "corrupted-documents";
+  generatedBy?: "ai" | "fallback";
   documents: CorruptedDocument[];
   answer: string;
   inputPlaceholder: string;
