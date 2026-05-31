@@ -36,6 +36,7 @@ export type SessionGameState = {
   secondsLeft: number;
   activePuzzle: SessionPuzzle | null;
   puzzleInstanceId: number;
+  wrongAnswerEventId?: number;
   textAnswerDraft: string;
   emailSearchDraft: string;
   emailSelectedId: string;

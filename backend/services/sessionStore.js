@@ -37,6 +37,7 @@ export const createInitialGameState = (intensity = "medium") => {
     secondsLeft: rooms[0].timeLimitSeconds,
     activePuzzle: null,
     puzzleInstanceId: 0,
+    wrongAnswerEventId: 0,
     textAnswerDraft: "",
     emailSearchDraft: "",
     emailSelectedId: "",

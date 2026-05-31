@@ -90,6 +90,7 @@ const loadPuzzleForSelectedRoom = async (session, statusText) => {
 
 const handleFailedAttempt = async (session, failureMessage) => {
   session.gameState.lives = Math.max(session.gameState.lives - 1, 0);
+  session.gameState.wrongAnswerEventId = (session.gameState.wrongAnswerEventId ?? 0) + 1;
   session.gameState.showHint = false;
   session.gameState.showAnswerText = false;
   session.gameState.showExplanation = false;

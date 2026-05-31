@@ -50,6 +50,7 @@ export const useGameplay = () => {
   const clearedRoomIds = ref<number[]>([]);
   const roomCleared = ref(false);
   const activePuzzleInstanceId = ref(0);
+  const wrongAnswerEventId = ref(0);
   let timerId: number | null = null;
 
   function createInitialRooms(intensity: IntensityLevel) {
@@ -314,6 +315,7 @@ export const useGameplay = () => {
     selectedRoomId.value = nextSession.gameState.selectedRoomId;
     roomCleared.value = nextSession.gameState.roomCleared;
     loading.value = nextSession.gameState.loading;
+    wrongAnswerEventId.value = nextSession.gameState.wrongAnswerEventId ?? 0;
     const nextPuzzleInstanceId = nextSession.gameState.puzzleInstanceId;
     const puzzleChanged = nextPuzzleInstanceId !== activePuzzleInstanceId.value;
     activePuzzleInstanceId.value = nextPuzzleInstanceId;
@@ -365,6 +367,7 @@ export const useGameplay = () => {
     secondsLeft,
     clearedRoomIds,
     roomCleared,
+    wrongAnswerEventId,
     selectedRoom,
     clearedRoomsCount,
     nextUnlockedRoomId,

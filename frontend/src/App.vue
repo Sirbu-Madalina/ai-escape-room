@@ -320,7 +320,7 @@ const musicUnavailable = ref(false);
 const musicVolume = ref(0.35);
 const isDifficultyMenuOpen = ref(false);
 const wrongAnswerPopupOpen = ref(false);
-const lastSeenLives = ref<number | null>(null);
+const lastSeenWrongAnswerEventId = ref<number | null>(null);
 
 const gameplay = useGameplay();
 const {
@@ -387,6 +387,7 @@ const {
   showAnswerText,
   showExplanation,
   lives,
+  wrongAnswerEventId,
   clearedRoomIds,
   roomCleared,
   selectedRoom,
@@ -543,17 +544,6 @@ const showWrongAnswerPopup = () => {
 
 const closeWrongAnswerPopup = () => {
   wrongAnswerPopupOpen.value = false;
-};
-
-const isSubmitFailureMessage = (nextMessage: string) => {
-  const normalizedMessage = nextMessage.toLowerCase();
-
-  return [
-    "not correct",
-    "wrong answer",
-    "not the correct choice",
-    "crossword letters",
-  ].some((pattern) => normalizedMessage.includes(pattern));
 };
 
 const handleFailedAttempt = async (failureMessage: string) => {
@@ -826,19 +816,19 @@ watch(musicUnavailable, (isUnavailable) => {
   }
 });
 
-watch([lives, message], ([nextLives, nextMessage]) => {
-  const previousLives = lastSeenLives.value;
+watch(wrongAnswerEventId, (nextEventId) => {
+  const previousEventId = lastSeenWrongAnswerEventId.value;
 
   if (
+    session.value &&
     currentScreen.value === "room" &&
-    previousLives !== null &&
-    nextLives < previousLives &&
-    isSubmitFailureMessage(nextMessage)
+    previousEventId !== null &&
+    nextEventId > previousEventId
   ) {
     showWrongAnswerPopup();
   }
 
-  lastSeenLives.value = nextLives;
+  lastSeenWrongAnswerEventId.value = nextEventId;
 }, { immediate: true });
 
 watch([currentScreen, roomCleared], ([nextScreen, isRoomCleared]) => {
