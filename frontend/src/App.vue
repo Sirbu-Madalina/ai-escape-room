@@ -448,6 +448,22 @@ const readStoredBoolean = (key: string, fallback: boolean) => {
   return storedValue === "true";
 };
 
+const readStoredMusicVolume = () => {
+  const storedValue = window.localStorage.getItem(MUSIC_VOLUME_KEY);
+
+  if (storedValue === null) {
+    return musicVolume.value;
+  }
+
+  const parsedVolume = Number(storedValue);
+
+  if (!Number.isFinite(parsedVolume) || parsedVolume <= 0) {
+    return musicVolume.value;
+  }
+
+  return parsedVolume;
+};
+
 const applyMusicVolume = () => {
   const nextVolume = Math.min(Math.max(musicVolume.value, 0), 1);
   musicVolume.value = nextVolume;
@@ -844,8 +860,7 @@ const goToNextRoom = () => {
 };
 
 onMounted(() => {
-  const storedVolume = Number(window.localStorage.getItem(MUSIC_VOLUME_KEY));
-  musicVolume.value = Number.isFinite(storedVolume) ? storedVolume : musicVolume.value;
+  musicVolume.value = readStoredMusicVolume();
   applyMusicVolume();
 
   if (readStoredBoolean(MUSIC_ENABLED_KEY, false)) {
