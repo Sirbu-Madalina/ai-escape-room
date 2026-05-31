@@ -830,7 +830,6 @@ watch([lives, message], ([nextLives, nextMessage]) => {
   const previousLives = lastSeenLives.value;
 
   if (
-    !session.value &&
     currentScreen.value === "room" &&
     previousLives !== null &&
     nextLives < previousLives &&
@@ -842,8 +841,8 @@ watch([lives, message], ([nextLives, nextMessage]) => {
   lastSeenLives.value = nextLives;
 }, { immediate: true });
 
-watch(session, (nextSession) => {
-  if (nextSession) {
+watch([currentScreen, roomCleared], ([nextScreen, isRoomCleared]) => {
+  if (nextScreen !== "room" || isRoomCleared) {
     closeWrongAnswerPopup();
   }
 });
