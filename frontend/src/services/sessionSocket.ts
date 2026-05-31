@@ -5,7 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const SOCKET_URL =
   (import.meta.env.VITE_API_URL as string | undefined) ??
   API_BASE_URL?.replace(/\/api\/?$/, "") ??
-  (typeof window !== "undefined" ? window.location.origin : "http://localhost:5001");
+  (import.meta.env.DEV ? "http://localhost:5001" : window.location.origin);
 
 export type SessionSocketHandlers = {
   onSessionState: (session: GameSession) => void;
