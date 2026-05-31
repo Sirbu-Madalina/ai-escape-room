@@ -121,7 +121,7 @@ export const registerSessionSocket = (io) => {
 
       const pendingSession = await getSessionById(sessionId);
 
-      if (pendingSession && pendingSession.hostPlayerId === socket.data.playerId) {
+      if (pendingSession && pendingSession.players.some((player) => player.id === socket.data.playerId)) {
         pendingSession.gameState.currentScreen = "room";
         pendingSession.gameState.selectedRoomId = roomId;
         pendingSession.gameState.loading = true;

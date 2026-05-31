@@ -589,10 +589,6 @@ const startRoom = (roomId: number) => {
   closeWrongAnswerPopup();
 
   if (session.value) {
-    if (!isHost.value) {
-      return;
-    }
-
     resetRoomActions();
     resetRoomUi();
     loading.value = true;

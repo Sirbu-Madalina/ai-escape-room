@@ -124,9 +124,9 @@ export const startRoomSession = async ({ sessionId, roomId, actorPlayerId }) => 
     return { error: "Session not found." };
   }
 
-  const hostError = ensureHostAction(session, actorPlayerId);
-  if (hostError) {
-    return hostError;
+  const actor = session.players.find((player) => player.id === actorPlayerId);
+  if (!actor) {
+    return { error: "Only team members can start a shared room." };
   }
 
   const room = session.gameState.rooms.find((candidate) => candidate.id === roomId);
