@@ -243,7 +243,7 @@
             <button
               v-else
               class="mission-submit-inline"
-              :disabled="loading"
+              :disabled="loading || !activePuzzle || roomCleared"
               @click="checkAnswer"
             >
               Submit answer
@@ -719,6 +719,10 @@ const useAnswerReveal = () => {
 
 const checkAnswer = () => {
   if (session.value) {
+    if (!activePuzzle.value || loading.value || roomCleared.value) {
+      return;
+    }
+
     emitSubmitAnswer({
       crosswordDraft: crosswordDraft.value,
       textAnswer: answerInput.value,
@@ -837,6 +841,12 @@ watch([lives, message], ([nextLives, nextMessage]) => {
 
   lastSeenLives.value = nextLives;
 }, { immediate: true });
+
+watch(session, (nextSession) => {
+  if (nextSession) {
+    closeWrongAnswerPopup();
+  }
+});
 
 onBeforeUnmount(() => {
   stopTimer();

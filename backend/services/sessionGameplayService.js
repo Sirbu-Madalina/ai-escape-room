@@ -168,7 +168,11 @@ export const submitAnswerSession = async ({ sessionId, answerPayload }) => {
 
   const puzzle = session.gameState.activePuzzle;
 
-  if (!puzzle || session.gameState.roomCleared || session.gameState.loading) {
+  if (session.gameState.loading) {
+    return { error: "The shared puzzle is still loading. Try again in a moment." };
+  }
+
+  if (!puzzle || session.gameState.roomCleared) {
     return { error: "There is no active shared puzzle right now." };
   }
 
